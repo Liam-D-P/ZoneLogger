@@ -40,7 +40,6 @@ Administrators can:
     .\activate
 5. Install the required packages
     pip install -r requirements.txt
-6. Run the application using streamlit run ZL1.py
 
 ### Running the Application
 
