@@ -319,7 +319,8 @@ def logout_user():
 
 # Add the show_zone_traffic function
 def show_zone_traffic():
-    st.write("📊 Recent Zone Activity")
+    st.markdown("### 👥 Live Zone Activity")
+    st.info("See which zones are currently popular with all explorers")
     
     # Get visit counts for last 30 minutes
     conn = get_db_connection()
@@ -337,7 +338,7 @@ def show_zone_traffic():
     if traffic:
         most_visited_zone_id = max(traffic.items(), key=lambda x: x[1])[0]
         most_visited_count = traffic[most_visited_zone_id]
-        st.write(f"🔥 {zone_mapping[most_visited_zone_id]} is the hottest zone with {most_visited_count} recent visits!")
+        st.write(f"🔥 {zone_mapping[most_visited_zone_id]} is the hottest zone with {most_visited_count} explorers in the last 30 minutes!")
     
     # Create columns for better layout
     col1, col2 = st.columns(2)
@@ -447,55 +448,45 @@ if user_email:
     # 1. User Identity
     user_name = get_name_from_email(user_email)
     st.markdown(f"### 👋 Hello {user_name}!")
+    st.markdown("---")  # Divider
     
-    # 2. Main Interaction Area (QR Scanner)
-    testing_mode = os.getenv('TESTING_MODE', 'false').lower() == 'true'
+    # 2. Scan QR Code Section
+    st.markdown("### 📱 Scan Zone QR Code")
+    st.info("Point your camera at a zone QR code to log your visit")
     
-    if testing_mode:
-        tab1, tab2, tab3 = st.tabs(["📱 Scan QR Code", "🧪 Test QR Codes", "🔘 Quick Buttons"])
-    else:
-        tab1 = st.tabs(["📱 Scan QR Code"])[0]
+    # Initialize the QR scanner
+    qr_code = qrcode_scanner(key='scanner')
+    st.markdown("")  # Add space
     
-    with tab1:
-        st.markdown("### 📱 Scan Zone QR Code")
-        st.info("Point your camera at a zone QR code to log your visit")
+    # QR code processing logic...
+    if (qr_code and 
+        qr_code != st.session_state.last_scanned_code and 
+        not st.session_state.processing_scan):
         
-        # Initialize the QR scanner
-        qr_code = qrcode_scanner(key='scanner')
+        st.session_state.processing_scan = True
         
-        # QR code processing logic...
-        if (qr_code and 
-            qr_code != st.session_state.last_scanned_code and 
-            not st.session_state.processing_scan):
+        if qr_code in zone_mapping:
+            conn = get_db_connection()
+            cursor = conn.execute('''
+                SELECT COUNT(*) FROM visits 
+                WHERE user_id = ? AND zone = ? 
+                AND datetime(timestamp) > datetime('now', '-1 minute')
+            ''', (st.session_state.user_email, qr_code))
+            recent_visits = cursor.fetchone()[0]
             
-            st.session_state.processing_scan = True
-            
-            if qr_code in zone_mapping:
-                conn = get_db_connection()
-                cursor = conn.execute('''
-                    SELECT COUNT(*) FROM visits 
-                    WHERE user_id = ? AND zone = ? 
-                    AND datetime(timestamp) > datetime('now', '-1 minute')
-                ''', (st.session_state.user_email, qr_code))
-                recent_visits = cursor.fetchone()[0]
-                
-                if recent_visits == 0:
-                    log_visit(st.session_state.user_email, qr_code)
-                    st.success(f"Successfully logged visit to {zone_mapping[qr_code]}! 🎉")
-                else:
-                    st.warning("You've already logged this zone recently. Please wait a moment before scanning again.")
+            if recent_visits == 0:
+                log_visit(st.session_state.user_email, qr_code)
+                st.success(f"Successfully logged visit to {zone_mapping[qr_code]}! 🎉")
             else:
-                st.error("Invalid QR code! Please try again.")
-            
-            st.session_state.last_scanned_code = qr_code
-            time.sleep(1)
-            st.session_state.processing_scan = False
+                st.warning("You've already logged this zone recently. Please wait a moment before scanning again.")
+        else:
+            st.error("Invalid QR code! Please try again.")
+        
+        st.session_state.last_scanned_code = qr_code
+        time.sleep(1)
+        st.session_state.processing_scan = False
     
-    if testing_mode:
-        with tab2:
-            show_test_qr_codes()
-        with tab3:
-            show_quick_buttons()
+    st.markdown("---")  # Divider
     
     # 3. Progress Stats
     stats = get_user_stats(user_email)
@@ -511,21 +502,25 @@ if user_email:
         st.metric("Total Visits", stats['total_visits'])
     
     # 4. Progress Bar
+    st.markdown("")  # Add space
     st.progress(stats['completion_percentage'] / 100, text=f"Journey Progress: {stats['completion_percentage']:.1f}%")
     
     # 5. Progress Map
+    st.markdown("")  # Add space
     st.markdown("### Your Progress Map")
     visualize_zones(user_email)
     
-    # 6. Zone Activity (moved to bottom)
+    st.markdown("---")  # Divider
+    
+    # 6. Zone Activity
     show_zone_traffic()
     
-    # 7. Prize Draw Section (at very bottom)
+    st.markdown("---")  # Divider
+    
+    # 7. Prize Draw Section
     if all_zones_visited(user_email):
-        st.markdown("---")
         st.markdown("### 🎉 Congratulations!")
         
-        # Check if already entered before showing button
         conn = get_db_connection()
         cursor = conn.execute('SELECT * FROM prize_draw WHERE user_id = ?', (user_email,))
         already_entered = cursor.fetchone() is not None
@@ -535,7 +530,6 @@ if user_email:
             st.info("Good luck! Winners will be notified by email 🍀")
         else:
             st.success("You've completed all zones! Click below to enter the prize draw.")
-            # Make button bigger and centered
             col1, col2, col3 = st.columns([1,2,1])
             with col2:
                 if st.button("Enter Prize Draw! 🎁", type="primary", use_container_width=True):
@@ -545,5 +539,4 @@ if user_email:
                     st.success("🎊 Fantastic! You're now entered in the prize draw!")
                     st.info("Good luck! Winners will be notified by email 🍀")
     else:
-        st.markdown("---")
         st.info("💡 Complete all zones to unlock the prize draw entry!")
