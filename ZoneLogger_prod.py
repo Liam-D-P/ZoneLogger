@@ -324,11 +324,11 @@ def get_zone_traffic():
     conn = get_db_connection()
     
     from datetime import datetime, timedelta
-    thirty_mins_ago = (datetime.now() - timedelta(minutes=30)).isoformat()
+    five_mins_ago = (datetime.now() - timedelta(minutes=5)).isoformat()
     
     data = conn.table("visits")\
         .select("zone")\
-        .gte("timestamp", thirty_mins_ago)\
+        .gte("timestamp", five_mins_ago)\
         .execute()
     
     # Count visits per zone
@@ -342,7 +342,7 @@ def get_zone_traffic():
 def show_zone_traffic():
     """Show live zone activity"""
     st.markdown("### 👥 Live Zone Activity")
-    st.info("See which zones are currently popular with all explorers (updates every 30 seconds)")
+    st.info("See which zones are currently popular!")
     
     # Use cached traffic data
     traffic = get_zone_traffic()
@@ -351,7 +351,7 @@ def show_zone_traffic():
     if traffic:
         most_visited_zone_id = max(traffic.items(), key=lambda x: x[1])[0]
         most_visited_count = traffic[most_visited_zone_id]
-        st.write(f"🔥 {zone_mapping[most_visited_zone_id]} is the hottest zone with {most_visited_count} explorers in the last 30 minutes!")
+        st.write(f"🔥 {zone_mapping[most_visited_zone_id]} is currently the hottest zone!")
     
     # Display zone traffic
     col1, col2 = st.columns(2)
@@ -363,9 +363,9 @@ def show_zone_traffic():
         visits = traffic.get(zone_id, 0)
         
         if traffic and zone_id == most_visited_zone_id:
-            current_col.write(f"{zone_name} 🔥: {visits} visits in last 30 min")
+            current_col.write(f"{zone_name} 🔥: {visits} explorers")
         else:
-            current_col.write(f"{zone_name}: {visits} visits in last 30 min")
+            current_col.write(f"{zone_name}: {visits} explorers")
 
 # Add this helper function near the other helper functions
 def get_name_from_email(email):
