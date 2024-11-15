@@ -364,16 +364,13 @@ def show_zone_traffic():
 
 # Add this helper function near the other helper functions
 def get_name_from_email(email):
-    """Extract first name from email address in SURNAME.FIRSTNAME format"""
+    """Extract first name from email address in FIRSTNAME.LASTNAME format"""
     if not email:
         return ""
     # Get the part before @ and split by dot
     name_parts = email.split('@')[0].split('.')
-    # If we have both surname and firstname (proper format)
-    if len(name_parts) >= 2:
-        firstname = name_parts[1]  # Take the second part (firstname)
-    else:
-        firstname = name_parts[0]  # Fallback to whatever we have
+    # Take the first part (firstname)
+    firstname = name_parts[0]  # Changed from name_parts[1] to name_parts[0]
     # Capitalize first letter
     return firstname.capitalize()
 
@@ -436,7 +433,7 @@ if testing_mode:
             st.success("Progress reset successfully!")
             st.rerun()
 
-# Check for user email in cookies (keep existing logic)
+# Check for user email in cookies
 if 'user_email' not in cookies and not st.session_state.show_email_override:
     st.markdown("### ✉️ First, let's get you registered!")
     user_email = st.text_input("Enter your email to start your journey:")
@@ -445,6 +442,7 @@ if 'user_email' not in cookies and not st.session_state.show_email_override:
         cookies.save()
         st.session_state.user_email = user_email
         st.success("✅ Successfully registered! You can now start exploring the zones.")
+        st.rerun()
 else:
     user_email = cookies['user_email']
     st.session_state.user_email = user_email
