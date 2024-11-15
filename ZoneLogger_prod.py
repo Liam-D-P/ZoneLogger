@@ -442,21 +442,66 @@ if 'user_email' not in cookies and not st.session_state.show_email_override:
 else:
     user_email = cookies['user_email']
     st.session_state.user_email = user_email
-    user_name = get_name_from_email(user_email)
-    st.markdown(f"### 👋 Hello {user_name}!")
 
 if user_email:
-    # Add traffic display before or after zone buttons
-    show_zone_traffic()
+    # 1. User Identity
+    user_name = get_name_from_email(user_email)
+    st.markdown(f"### 👋 Hello {user_name}!")
     
-    # Process zone visits
-    show_zone_interface()
+    # 2. Main Interaction Area (QR Scanner)
+    testing_mode = os.getenv('TESTING_MODE', 'false').lower() == 'true'
     
-    # Then get and display updated stats
+    if testing_mode:
+        tab1, tab2, tab3 = st.tabs(["📱 Scan QR Code", "🧪 Test QR Codes", "🔘 Quick Buttons"])
+    else:
+        tab1 = st.tabs(["📱 Scan QR Code"])[0]
+    
+    with tab1:
+        st.markdown("### 📱 Scan Zone QR Code")
+        st.info("Point your camera at a zone QR code to log your visit")
+        
+        # Initialize the QR scanner
+        qr_code = qrcode_scanner(key='scanner')
+        
+        # QR code processing logic...
+        if (qr_code and 
+            qr_code != st.session_state.last_scanned_code and 
+            not st.session_state.processing_scan):
+            
+            st.session_state.processing_scan = True
+            
+            if qr_code in zone_mapping:
+                conn = get_db_connection()
+                cursor = conn.execute('''
+                    SELECT COUNT(*) FROM visits 
+                    WHERE user_id = ? AND zone = ? 
+                    AND datetime(timestamp) > datetime('now', '-1 minute')
+                ''', (st.session_state.user_email, qr_code))
+                recent_visits = cursor.fetchone()[0]
+                
+                if recent_visits == 0:
+                    log_visit(st.session_state.user_email, qr_code)
+                    st.success(f"Successfully logged visit to {zone_mapping[qr_code]}! 🎉")
+                else:
+                    st.warning("You've already logged this zone recently. Please wait a moment before scanning again.")
+            else:
+                st.error("Invalid QR code! Please try again.")
+            
+            st.session_state.last_scanned_code = qr_code
+            time.sleep(1)
+            st.session_state.processing_scan = False
+    
+    if testing_mode:
+        with tab2:
+            show_test_qr_codes()
+        with tab3:
+            show_quick_buttons()
+    
+    # 3. Progress Stats
     stats = get_user_stats(user_email)
     rank = get_user_rank(user_email)
     
-    # Create three columns for stats with updated data
+    st.markdown("### Your Progress")
     col1, col2, col3 = st.columns(3)
     with col1:
         st.metric("Rank", rank)
@@ -465,14 +510,17 @@ if user_email:
     with col3:
         st.metric("Total Visits", stats['total_visits'])
     
-    # Add progress bar with updated data
+    # 4. Progress Bar
     st.progress(stats['completion_percentage'] / 100, text=f"Journey Progress: {stats['completion_percentage']:.1f}%")
     
-    # Show progress map
-    st.markdown("### Your Progress Map:")
+    # 5. Progress Map
+    st.markdown("### Your Progress Map")
     visualize_zones(user_email)
     
-    # Check if all zones are visited
+    # 6. Zone Activity (moved to bottom)
+    show_zone_traffic()
+    
+    # 7. Prize Draw Section (at very bottom)
     if all_zones_visited(user_email):
         st.markdown("---")
         st.markdown("### 🎉 Congratulations!")
