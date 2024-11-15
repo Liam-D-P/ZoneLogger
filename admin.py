@@ -126,7 +126,4 @@ with col2:
 # Visits by zone
 st.subheader("Visits by Zone")
 zone_counts = visits_df["Zone"].value_counts()
-st.bar_chart(zone_counts)
-
-# Close connection at the end
-conn.close() 
+st.bar_chart(zone_counts) 
