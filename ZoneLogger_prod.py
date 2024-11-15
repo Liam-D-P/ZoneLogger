@@ -277,10 +277,10 @@ def show_zone_traffic():
     """Show live zone activity"""
     conn = get_db_connection()
     
-    # Use proper timestamp syntax for Supabase
+    # Use proper timestamp syntax for Supabase timestamp without time zone
     data = conn.table("visits")\
         .select("zone")\
-        .gte("timestamp", f"now() - interval '30 minutes'")\
+        .filter("timestamp >= now() - interval '30 minutes'")\
         .execute()
     
     # Count visits per zone
@@ -417,15 +417,18 @@ if user_email:
         
         st.session_state.processing_scan = True
         
+        # QR code processing logic
         if qr_code in zone_mapping:
             conn = get_db_connection()
-            cursor = conn.execute('''
-                SELECT COUNT(*) FROM visits 
-                WHERE user_id = ? AND zone = ? 
-                AND datetime(timestamp) > datetime('now', '-1 minute')
-            ''', (st.session_state.user_email, qr_code))
-            recent_visits = cursor.fetchone()[0]
-            
+            result = conn.table("visits")\
+        .select("*")\
+        .eq("user_id", st.session_state.user_email)\
+        .eq("zone", qr_code)\
+                .filter("timestamp >= now() - interval '1 minute'")\
+                            .execute()
+    
+            recent_visits = len(result.data)
+    
             if recent_visits == 0:
                 log_visit(st.session_state.user_email, qr_code)
                 st.success(f"Successfully logged visit to {zone_mapping[qr_code]}! 🎉")
