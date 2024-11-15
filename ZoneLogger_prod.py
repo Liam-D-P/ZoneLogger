@@ -110,10 +110,6 @@ def show_zone_interface():
         st.markdown("### 📱 Scan Zone QR Code")
         st.info("Point your camera at a zone QR code to log your visit")
         
-        # Show progress visualization
-        st.markdown("### Your Progress:")
-        visualize_zones(st.session_state.user_email)
-        
         # Initialize the QR scanner
         qr_code = qrcode_scanner(key='scanner')
         
@@ -159,9 +155,20 @@ def show_zone_interface():
             visualize_zones(st.session_state.user_email)
         
         with tab3:
-            show_quick_buttons()
-            st.markdown("### Your Progress:")
-            visualize_zones(st.session_state.user_email)
+            st.markdown("### Quick Zone Completion")
+            st.info("Click buttons below to mark zones as visited")
+            
+            # Create columns for zone buttons
+            cols = st.columns(3)
+            for i, (zone_id, zone_name) in enumerate(zone_mapping.items()):
+                col_idx = i % 3
+                with cols[col_idx]:
+                    if st.button(f"Visit {zone_name}", key=f"visit_{zone_id}", use_container_width=True):
+                        # Actually log the visit
+                        log_visit(st.session_state.user_email, zone_id)
+                        st.success(f"Great job! You've discovered {zone_name}!")
+                        time.sleep(1)  # Give time to see the success message
+                        st.rerun()
 
 # Initialize SQLite database
 @st.cache_resource
