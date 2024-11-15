@@ -276,10 +276,11 @@ def logout_user():
 def show_zone_traffic():
     """Show live zone activity"""
     conn = get_db_connection()
+    
     # Use proper timestamp syntax for Supabase
     data = conn.table("visits")\
         .select("zone")\
-        .gte("timestamp", "now() - interval '30 minutes'")\
+        .gte("timestamp", f"now() - interval '30 minutes'")\
         .execute()
     
     # Count visits per zone
