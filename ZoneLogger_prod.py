@@ -103,9 +103,8 @@ def show_zone_interface():
         st.markdown("### 📱 Scan Zone QR Code")
         st.info("Point your camera at a zone QR code to log your visit")
         
-        # Show progress map
-        st.markdown("### Your Progress Map:")
-        visualize_zones(st.session_state.user_email)
+        # Show zone activity
+        show_zone_traffic()
         
         # Initialize the QR scanner
         qr_code = qrcode_scanner(key='scanner')
@@ -141,13 +140,9 @@ def show_zone_interface():
     if testing_mode:
         with tab2:
             show_test_qr_codes()
-            st.markdown("### Your Progress:")
-            visualize_zones(st.session_state.user_email)
         
         with tab3:
             show_quick_buttons()
-            st.markdown("### Your Progress:")
-            visualize_zones(st.session_state.user_email)
 
 # Initialize SQLite database
 @st.cache_resource
@@ -459,8 +454,9 @@ if user_email:
     # 3. Progress Bar
     st.progress(stats['completion_percentage'] / 100, text=f"Journey Progress: {stats['completion_percentage']:.1f}%")
     
-    # 4. Zone Activity Overview
-    show_zone_traffic()
+    # 4. Progress Map
+    st.markdown("### Your Progress Map:")
+    visualize_zones(st.session_state.user_email)
     
     # 5. Main Interaction Area
     show_zone_interface()
