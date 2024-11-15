@@ -4,8 +4,6 @@
 import streamlit as st
 import os
 from st_supabase_connection import SupabaseConnection
-from supabase.lib.client_options import ClientOptions
-from supabase import create_client, Client
 
 # Set page to wide mode and other configurations
 st.set_page_config(
@@ -35,13 +33,7 @@ zone_mapping = {
     "zone789ghi": "Zone 3",
     "zone012jkl": "Zone 4",
     "zone345mno": "Zone 5",
-    "zone678pqr": "Zone 6",
-    "zone901stu": "Zone 7",
-    "zone234vwx": "Zone 8",
-    "zone567yza": "Zone 9",
-    "zone890bcd": "Zone 10",
-    "zone321efg": "Zone 11",
-    "zone654hij": "Zone 12"
+    "zone678pqr": "Zone 6"
 }
 
 # Initialize cookies manager with a password
@@ -75,7 +67,7 @@ def show_test_qr_codes():
     st.markdown("### 🧪 Test QR Codes")
     st.info("Use these QR codes to test the scanner. Each code represents a different zone.")
     
-    # Create columns for QR codes (3 columns)
+    # Create columns for QR codes
     cols = st.columns(3)
     for i, (zone_id, zone_name) in enumerate(zone_mapping.items()):
         col_idx = i % 3
@@ -107,24 +99,18 @@ def show_quick_buttons():
 def show_manual_checkin():
     """Show manual check-in buttons for each zone"""
     st.markdown("### 🔄 Manual Check-in")
-    
-    if all_zones_visited(st.session_state.user_email):
-        st.success("🎉 Congratulations! You've discovered all zones! Check the prize draw section below.")
-        return
-        
     st.info("If QR scanning isn't working, you can manually check in to a zone here")
     
-    # Create 3 columns for zone buttons
+    # Create columns for zone buttons
     cols = st.columns(3)
     for i, (zone_id, zone_name) in enumerate(zone_mapping.items()):
         col_idx = i % 3
         with cols[col_idx]:
             if st.button(f"Check in to {zone_name}", key=f"manual_{zone_id}", use_container_width=True):
-                success, message = log_visit(st.session_state.user_email, zone_id)
-                if success:
-                    st.success(message)
+                if log_visit(st.session_state.user_email, zone_id):
+                    st.success(f"Successfully checked in to {zone_name}! 🎉")
                 else:
-                    st.warning(message)
+                    st.warning("Please wait a minute before checking in to this zone again.")
                 time.sleep(1)
                 st.rerun()
 
@@ -140,34 +126,45 @@ def show_zone_interface():
     
     with tab1:
         st.markdown("### 📱 Scan Zone QR Code")
-        if all_zones_visited(st.session_state.user_email):
-            st.success("🎉 Congratulations! You've discovered all zones! Check the prize draw section below.")
-        else:
-            st.info("Point your camera at a zone QR code to log your visit")
+        st.info("Point your camera at a zone QR code to log your visit")
+        
+        # Initialize the QR scanner
+        qr_code = qrcode_scanner(key='scanner')
+        
+        # QR code processing logic...
+        if (qr_code and 
+            qr_code != st.session_state.last_scanned_code and 
+            not st.session_state.processing_scan):
             
-            # Initialize the QR scanner
-            qr_code = qrcode_scanner(key='scanner')
+            st.session_state.processing_scan = True
             
-            if (qr_code and 
-                qr_code != st.session_state.last_scanned_code and 
-                not st.session_state.processing_scan):
+            if qr_code in zone_mapping:
+                conn = get_db_connection()
+                from datetime import datetime, timedelta
+                one_min_ago = (datetime.now() - timedelta(minutes=1)).isoformat()
                 
-                st.session_state.processing_scan = True
+                result = conn.table("visits")\
+                    .select("*")\
+                    .eq("user_id", st.session_state.user_email)\
+                    .eq("zone", qr_code)\
+                    .gte("timestamp", one_min_ago)\
+                    .execute()
                 
-                if qr_code in zone_mapping:
-                    success, message = log_visit(st.session_state.user_email, qr_code)
-                    if success:
-                        st.success(message)
-                        time.sleep(1)
-                        st.rerun()
-                    else:
-                        st.warning(message)
+                recent_visits = len(result.data)
+                
+                if recent_visits == 0:
+                    log_visit(st.session_state.user_email, qr_code)
+                    st.success(f"Successfully logged visit to {zone_mapping[qr_code]}! 🎉")
+                    time.sleep(1)  # Give time to see the success message
+                    st.rerun()  # Refresh to update the UI
                 else:
-                    st.error("Invalid QR code! Please try again.")
-                
-                st.session_state.last_scanned_code = qr_code
-                time.sleep(1)
-                st.session_state.processing_scan = False
+                    st.warning("You've already logged this zone recently. Please wait a moment before scanning again.")
+            else:
+                st.error("Invalid QR code! Please try again.")
+            
+            st.session_state.last_scanned_code = qr_code
+            time.sleep(1)
+            st.session_state.processing_scan = False
     
     with tab2:
         show_manual_checkin()
@@ -182,35 +179,12 @@ def show_zone_interface():
 @st.cache_resource
 def get_db_connection():
     """Get Supabase connection"""
-    # Get credentials from Streamlit secrets
-    url = st.secrets["supabase"]["url"]
-    key = st.secrets["supabase"]["key"]
-    
-    # Create direct Supabase client for realtime
-    supabase_client = create_client(url, key)
-    
-    # Subscribe to realtime changes
-    channel = supabase_client.realtime\
-        .channel('visits_channel')\
-        .on('postgres_changes',
-            event='*',
-            schema='public',
-            table='visits',
-            callback=lambda payload: st.rerun()
-        )\
-        .subscribe()
-    
-    # Return Streamlit connection for regular queries
     return st.connection("supabase", type=SupabaseConnection)
 
 # Function to log visit
 def log_visit(user_id, zone):
-    """Log a zone visit if cooldown period has passed and user hasn't completed all zones"""
+    """Log a zone visit if cooldown period has passed"""
     conn = get_db_connection()
-    
-    # First check if user has already completed all zones
-    if all_zones_visited(user_id):
-        return False, "You've already completed all zones! 🎉"
     
     # Check for recent visits in the last minute
     from datetime import datetime, timedelta
@@ -226,24 +200,14 @@ def log_visit(user_id, zone):
     recent_visits = len(result.data)
     
     if recent_visits == 0:
-        # Check if this specific zone was already visited
-        all_visits = conn.table("visits")\
-            .select("zone")\
-            .eq("user_id", user_id)\
-            .eq("zone", zone)\
-            .execute()
-        
-        if len(all_visits.data) > 0:
-            return False, f"You've already discovered {zone_mapping[zone]}! Try finding a different zone."
-            
-        # No recent visits and zone not visited before, ok to log new visit
+        # No recent visits, ok to log new visit
         conn.table("visits").insert({
             "user_id": user_id,
             "zone": zone,
             "timestamp": "now()"
         }).execute()
-        return True, f"Successfully discovered {zone_mapping[zone]}! 🎉"
-    return False, "Please wait a minute before checking in to this zone again."
+        return True
+    return False
 
 # Function to check if all zones are visited
 def all_zones_visited(user_id):
@@ -267,21 +231,15 @@ def visualize_zones(user_id):
     
     visited_zones = [row['zone'] for row in data.data]
     
-    # Create three columns for better layout with 12 zones
-    col1, col2, col3 = st.columns(3)
+    # Create two columns for better layout
+    col1, col2 = st.columns(2)
     
-    # Split zones into three groups for three columns
+    # Split zones into two groups for two columns
     zones_list = list(zone_mapping.items())
-    third_point = len(zones_list) // 3
+    mid_point = len(zones_list) // 2
     
     for i, (complex_zone, friendly_zone) in enumerate(zones_list):
-        if i < third_point:
-            current_col = col1
-        elif i < third_point * 2:
-            current_col = col2
-        else:
-            current_col = col3
-            
+        current_col = col1 if i < mid_point else col2
         if complex_zone in visited_zones:
             current_col.markdown(f"✅ {friendly_zone}", unsafe_allow_html=True)
         else:
@@ -298,17 +256,23 @@ def get_remaining_zones(user_id):
 def get_user_stats(user_id):
     """Get user statistics"""
     conn = get_db_connection()
+    # Change from using query to using table().select()
     result = conn.table("visits").select("zone").eq("user_id", user_id).execute()
     
-    # Now we only care about unique zones
-    visited_zones = set(row['zone'] for row in result.data)
-    unique_zones = len(visited_zones)
+    visits_by_zone = defaultdict(int)
+    # Access the data through result.data
+    for row in result.data:
+        visits_by_zone[row['zone']] += 1
+    
+    total_visits = sum(visits_by_zone.values())
+    unique_zones = len(visits_by_zone)
     completion_percentage = (unique_zones / len(zone_mapping)) * 100
     
     return {
+        'total_visits': total_visits,
         'unique_zones': unique_zones,
         'completion_percentage': completion_percentage,
-        'visited_zones': visited_zones
+        'visits_by_zone': dict(visits_by_zone)
     }
 
 # Function to get user rank
@@ -317,9 +281,9 @@ def get_user_rank(user_email):
         stats = get_user_stats(user_email)
         if stats['unique_zones'] == 0:
             return "Novice Explorer 🌱"
-        elif stats['unique_zones'] <= 3:  # Updated threshold
+        elif stats['unique_zones'] <= 2:
             return "Zone Seeker 🔍"
-        elif stats['unique_zones'] <= 7:  # Updated threshold
+        elif stats['unique_zones'] <= 4:
             return "Zone Master 🌟"
         else:
             return "Zone Expert 💫"
@@ -368,11 +332,11 @@ def get_zone_traffic():
 
 # Update the show_zone_traffic function to use the cached data
 def show_zone_traffic():
-    """Show live zone activity with real-time updates"""
+    """Show live zone activity"""
     st.markdown("### 👥 Live Zone Activity")
-    st.info("See which zones are currently popular (updates in real-time) ⚡")
+    st.info("See which zones are currently popular with all explorers (updates every 30 seconds)")
     
-    # Get traffic data (no caching needed now)
+    # Use cached traffic data
     traffic = get_zone_traffic()
     
     # Find the most visited zone
@@ -489,11 +453,13 @@ if user_email:
     stats = get_user_stats(user_email)
     rank = get_user_rank(user_email)
     
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
         st.metric("Rank", rank)
     with col2:
         st.metric("Zones Discovered", f"{stats['unique_zones']}/{len(zone_mapping)}")
+    with col3:
+        st.metric("Total Visits", stats['total_visits'])
     
     # 3. Progress Bar
     st.progress(stats['completion_percentage'] / 100, text=f"Journey Progress: {stats['completion_percentage']:.1f}%")
@@ -503,34 +469,43 @@ if user_email:
     
     with tab1:
         st.markdown("### 📱 Scan Zone QR Code")
-        if all_zones_visited(st.session_state.user_email):
-            st.success("🎉 Congratulations! You've discovered all zones! Check the prize draw section below.")
-        else:
-            st.info("Point your camera at a zone QR code to log your visit")
+        st.info("Point your camera at a zone QR code to log your visit")
+        qr_code = qrcode_scanner(key='scanner')
+        
+        # QR code processing logic...
+        if (qr_code and 
+            qr_code != st.session_state.last_scanned_code and 
+            not st.session_state.processing_scan):
             
-            # Initialize the QR scanner
-            qr_code = qrcode_scanner(key='scanner')
+            st.session_state.processing_scan = True
             
-            if (qr_code and 
-                qr_code != st.session_state.last_scanned_code and 
-                not st.session_state.processing_scan):
+            if qr_code in zone_mapping:
+                conn = get_db_connection()
+                from datetime import datetime, timedelta
+                one_min_ago = (datetime.now() - timedelta(minutes=1)).isoformat()
                 
-                st.session_state.processing_scan = True
+                result = conn.table("visits")\
+                    .select("*")\
+                    .eq("user_id", st.session_state.user_email)\
+                    .eq("zone", qr_code)\
+                    .gte("timestamp", one_min_ago)\
+                    .execute()
                 
-                if qr_code in zone_mapping:
-                    success, message = log_visit(st.session_state.user_email, qr_code)
-                    if success:
-                        st.success(message)
-                        time.sleep(1)
-                        st.rerun()
-                    else:
-                        st.warning(message)
+                recent_visits = len(result.data)
+                
+                if recent_visits == 0:
+                    log_visit(st.session_state.user_email, qr_code)
+                    st.success(f"Successfully logged visit to {zone_mapping[qr_code]}! 🎉")
+                    time.sleep(1)  # Give time to see the success message
+                    st.rerun()  # Refresh to update the UI
                 else:
-                    st.error("Invalid QR code! Please try again.")
-                
-                st.session_state.last_scanned_code = qr_code
-                time.sleep(1)
-                st.session_state.processing_scan = False
+                    st.warning("You've already logged this zone recently. Please wait a moment before scanning again.")
+            else:
+                st.error("Invalid QR code! Please try again.")
+            
+            st.session_state.last_scanned_code = qr_code
+            time.sleep(1)
+            st.session_state.processing_scan = False
     
     with tab2:
         st.markdown("### ✍️ Manual Zone Check-in")
@@ -542,11 +517,10 @@ if user_email:
             col_idx = i % 3
             with cols[col_idx]:
                 if st.button(f"Check in to {zone_name}", key=f"manual_{zone_id}", use_container_width=True):
-                    success, message = log_visit(st.session_state.user_email, zone_id)
-                    if success:
-                        st.success(message)
+                    if log_visit(st.session_state.user_email, zone_id):
+                        st.success(f"Successfully checked in to {zone_name}! 🎉")
                     else:
-                        st.warning(message)
+                        st.warning("Please wait a minute before checking in to this zone again.")
                     time.sleep(1)
                     st.rerun()
     
