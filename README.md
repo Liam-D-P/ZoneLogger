@@ -33,21 +33,20 @@ Administrators can:
 
 1. Clone the repository
 2. Create a new virtual environment
-    python -m venv zone_explorer_env
+    `python -m venv zone_explorer_env`
 3. Navigate to new virtual environment
-    cd zone_explorer_env/Scripts
+    `cd zone_explorer_env/Scripts`
 4. Activate the virtual environment
-    .\activate
+    `.\activate`
 5. Install the required packages
-    pip install -r requirements.txt
-6. Run the application using streamlit run ZL1.py
+    `pip install -r requirements.txt`
 
 ### Running the Application
 
 1. Start the main application:
-    streamlit run ZoneLogger.py
+    `streamlit run ZoneLogger.py`
 2. Start the admin application:
-    streamlit run admin.py --server.port 8502
+    `streamlit run admin.py --server.port 8502`
 
 ### Accessing the Applications
 

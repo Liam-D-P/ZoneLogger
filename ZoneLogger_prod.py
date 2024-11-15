@@ -14,6 +14,10 @@ import datetime
 from collections import defaultdict
 from urllib.parse import urlencode
 import time
+from streamlit_qrcode_scanner import qrcode_scanner
+import qrcode
+from io import BytesIO
+import base64
 
 # Zones mapping
 zone_mapping = {
@@ -30,6 +34,56 @@ cookies = EncryptedCookieManager(prefix="streamlit_app", password="your_secret_p
 
 if not cookies.ready():
     st.stop()
+
+# Initialize session state
+if 'show_email_override' not in st.session_state:
+    st.session_state.show_email_override = False
+
+# QR Code Functions
+def generate_qr_code(data):
+    """Generate a QR code and return it as a base64 string"""
+    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    qr.add_data(data)
+    qr.make(fit=True)
+    
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffered = BytesIO()
+    img.save(buffered, format="PNG")
+    return base64.b64encode(buffered.getvalue()).decode()
+
+def show_qr_scanner():
+    """Show QR scanner and handle scanned codes"""
+    st.markdown("### 📱 Scan Zone QR Code")
+    st.info("Point your camera at a zone QR code to log your visit")
+    
+    # Initialize the QR scanner
+    qr_code = qrcode_scanner(key='scanner')
+    
+    if qr_code:  # If a QR code is scanned
+        if qr_code in zone_mapping:
+            log_visit(st.session_state.user_email, qr_code)
+            st.success(f"Successfully logged visit to {zone_mapping[qr_code]}! 🎉")
+            time.sleep(2)  # Give time to see the success message
+            st.rerun()
+        else:
+            st.error("Invalid QR code! Please try again.")
+
+def show_test_qr_codes():
+    """Show test QR codes for each zone"""
+    st.markdown("### 🧪 Test QR Codes")
+    st.info("Use these QR codes to test the scanner. Each code represents a different zone.")
+    
+    # Create columns for QR codes
+    cols = st.columns(3)
+    for i, (zone_id, zone_name) in enumerate(zone_mapping.items()):
+        col_idx = i % 3
+        with cols[col_idx]:
+            qr_base64 = generate_qr_code(zone_id)
+            st.markdown(f"##### {zone_name}")
+            st.markdown(
+                f'<img src="data:image/png;base64,{qr_base64}" alt="{zone_name}" width="150">',
+                unsafe_allow_html=True
+            )
 
 # Initialize SQLite database
 @st.cache_resource
@@ -180,28 +234,31 @@ def get_user_rank(user_email):
 
 # Function to add testing interface
 def show_zone_buttons():
-    st.markdown("### Quick Zone Completion")
-    st.info("Click buttons below to mark zones as visited")
+    # Create tabs for different interaction methods
+    tab1, tab2, tab3 = st.tabs(["📱 Scan QR Code", "🧪 Test QR Codes", "🔘 Quick Buttons"])
     
-    # Initialize session state for last visited zone if not exists
-    if 'last_visited_zone' not in st.session_state:
-        st.session_state.last_visited_zone = None
-    
-    # Create columns for zone buttons
-    cols = st.columns(3)
-    for i, (zone_id, zone_name) in enumerate(zone_mapping.items()):
-        col_idx = i % 3
-        with cols[col_idx]:
-            if st.button(f"Visit {zone_name}", key=f"visit_{zone_id}", use_container_width=True):
-                st.session_state.last_visited_zone = (zone_id, zone_name)
-                st.rerun()
-    
-    # Process the visit after rerun if there's a last visited zone
-    if st.session_state.last_visited_zone:
-        zone_id, zone_name = st.session_state.last_visited_zone
-        log_visit(st.session_state.user_email, zone_id)
-        st.success(f"Great job! You've discovered {zone_name}!")
-        st.session_state.last_visited_zone = None  # Clear the last visited zone
+    with tab1:
+        show_qr_scanner()
+        
+    with tab2:
+        show_test_qr_codes()
+        
+    with tab3:
+        st.markdown("### Quick Zone Completion")
+        st.info("Click buttons below to mark zones as visited")
+        
+        # Initialize session state for last visited zone if not exists
+        if 'last_visited_zone' not in st.session_state:
+            st.session_state.last_visited_zone = None
+        
+        # Create columns for zone buttons
+        cols = st.columns(3)
+        for i, (zone_id, zone_name) in enumerate(zone_mapping.items()):
+            col_idx = i % 3
+            with cols[col_idx]:
+                if st.button(f"Visit {zone_name}", key=f"visit_{zone_id}", use_container_width=True):
+                    st.session_state.last_visited_zone = (zone_id, zone_name)
+                    st.rerun()
 
 # Add this function after the other helper functions
 def reset_user_progress(user_email):
@@ -222,10 +279,6 @@ def logout_user():
     for key in list(st.session_state.keys()):
         del st.session_state[key]
     # Don't rerun here - let the button handler do it
-
-# Add this near the top where other session state is initialized
-if 'show_email_override' not in st.session_state:
-    st.session_state.show_email_override = False
 
 # Add the show_zone_traffic function
 def show_zone_traffic():
