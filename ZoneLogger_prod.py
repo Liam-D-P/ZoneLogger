@@ -33,7 +33,13 @@ zone_mapping = {
     "zone789ghi": "Zone 3",
     "zone012jkl": "Zone 4",
     "zone345mno": "Zone 5",
-    "zone678pqr": "Zone 6"
+    "zone678pqr": "Zone 6",
+    "zone901stu": "Zone 7",
+    "zone234vwx": "Zone 8",
+    "zone567yza": "Zone 9",
+    "zone890bcd": "Zone 10",
+    "zone321efg": "Zone 11",
+    "zone654hij": "Zone 12"
 }
 
 # Initialize cookies manager with a password
@@ -281,13 +287,15 @@ def get_user_rank(user_email):
         stats = get_user_stats(user_email)
         if stats['unique_zones'] == 0:
             return "Novice Explorer 🌱"
-        elif stats['unique_zones'] <= 2:
+        elif stats['unique_zones'] <= 3:
             return "Zone Seeker 🔍"
-        elif stats['unique_zones'] <= 4:
-            return "Zone Master 🌟"
+        elif stats['unique_zones'] <= 6:
+            return "Zone Adventurer 🌟"
+        elif stats['unique_zones'] <= 9:
+            return "Zone Master 💫"
         else:
-            return "Zone Expert 💫"
-    return "Zone Champion 👑"
+            return "Zone Expert 👑"
+    return "Zone Champion 🏆"
 
 # Add this function after the other helper functions
 def reset_user_progress(user_email):
