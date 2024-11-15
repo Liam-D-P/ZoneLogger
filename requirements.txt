@@ -1,3 +1,6 @@
 streamlit
 pandas
 streamlit_cookies_manager
+streamlit-qrcode-scanner
+qrcode
+pillow
