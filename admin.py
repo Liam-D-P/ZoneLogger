@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 from st_supabase_connection import SupabaseConnection
+from ZoneLogger_prod import zone_mapping  # Import your zone mapping
 
 # Set page to wide mode
 st.set_page_config(
@@ -56,10 +57,14 @@ def get_prize_entries():
 def get_visits(start_date, end_date):
     """Get visits between specified dates"""
     conn = get_db_connection()
+    # Convert dates to datetime with time boundaries
+    start_datetime = f"{start_date}T00:00:00"
+    end_datetime = f"{end_date}T23:59:59"
+    
     data = conn.table("visits")\
-        .select("user_id, zone, timestamp")\
-        .gte("timestamp", start_date.isoformat())\
-        .lte("timestamp", end_date.isoformat())\
+        .select("*")\
+        .gte("timestamp", start_datetime)\
+        .lte("timestamp", end_datetime)\
         .execute()
     return data.data
 
@@ -116,8 +121,35 @@ with col2:
 
 # Query with date filter
 visits = get_visits(start_date, end_date)
-visits_df = pd.DataFrame(visits, columns=["User ID", "Zone", "Timestamp"])
-st.dataframe(visits_df, use_container_width=True)
+# Create DataFrame from Supabase data
+visits_df = pd.DataFrame([
+    {
+        'User ID': visit['user_id'],
+        'Zone': visit['zone'],
+        'Timestamp': visit['timestamp']
+    } for visit in visits
+])
+
+if not visits_df.empty:
+    # Convert zone IDs to zone names for better readability
+    visits_df['Zone Name'] = visits_df['Zone'].map(zone_mapping)
+    
+    # Display raw data
+    st.subheader("Raw Visit Data")
+    st.dataframe(visits_df, use_container_width=True)
+    
+    # Create visualizations
+    zone_counts = visits_df['Zone Name'].value_counts()
+    
+    # Make the bar chart more readable
+    st.subheader("Visits by Zone")
+    chart_data = pd.DataFrame({
+        'Zone': zone_counts.index,
+        'Visits': zone_counts.values
+    })
+    st.bar_chart(chart_data.set_index('Zone'))
+else:
+    st.info("No visits found in the selected date range")
 
 # Statistics Section
 st.header("Statistics 📈")
@@ -131,8 +163,4 @@ with col1:
     st.metric("Unique Users", unique_users)
 with col2:
     st.metric("Total Visits", total_visits)
-
-# Visits by zone
-st.subheader("Visits by Zone")
-zone_counts = visits_df["Zone"].value_counts()
-st.bar_chart(zone_counts) 
+  
