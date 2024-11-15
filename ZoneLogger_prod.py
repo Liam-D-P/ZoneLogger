@@ -90,8 +90,10 @@ def show_quick_buttons():
         col_idx = i % 3
         with cols[col_idx]:
             if st.button(f"Visit {zone_name}", key=f"visit_{zone_id}", use_container_width=True):
-                log_visit(st.session_state.user_email, zone_id)
-                st.success(f"Great job! You've discovered {zone_name}!")
+                if log_visit(st.session_state.user_email, zone_id):
+                    st.success(f"Great job! You've discovered {zone_name}!")
+                else:
+                    st.warning("Please wait a minute before visiting this zone again.")
                 st.rerun()
 
 def show_manual_checkin():
@@ -105,10 +107,11 @@ def show_manual_checkin():
         col_idx = i % 3
         with cols[col_idx]:
             if st.button(f"Check in to {zone_name}", key=f"manual_{zone_id}", use_container_width=True):
-                # Actually log the visit
-                log_visit(st.session_state.user_email, zone_id)
-                st.success(f"Successfully checked in to {zone_name}! 🎉")
-                time.sleep(1)  # Give time to see the success message
+                if log_visit(st.session_state.user_email, zone_id):
+                    st.success(f"Successfully checked in to {zone_name}! 🎉")
+                else:
+                    st.warning("Please wait a minute before checking in to this zone again.")
+                time.sleep(1)
                 st.rerun()
 
 def show_zone_interface():
@@ -180,13 +183,31 @@ def get_db_connection():
 
 # Function to log visit
 def log_visit(user_id, zone):
-    """Log a zone visit"""
+    """Log a zone visit if cooldown period has passed"""
     conn = get_db_connection()
-    conn.table("visits").insert({
-        "user_id": user_id,
-        "zone": zone,
-        "timestamp": "now()"
-    }).execute()
+    
+    # Check for recent visits in the last minute
+    from datetime import datetime, timedelta
+    one_min_ago = (datetime.now() - timedelta(minutes=1)).isoformat()
+    
+    result = conn.table("visits")\
+        .select("*")\
+        .eq("user_id", user_id)\
+        .eq("zone", zone)\
+        .gte("timestamp", one_min_ago)\
+        .execute()
+    
+    recent_visits = len(result.data)
+    
+    if recent_visits == 0:
+        # No recent visits, ok to log new visit
+        conn.table("visits").insert({
+            "user_id": user_id,
+            "zone": zone,
+            "timestamp": "now()"
+        }).execute()
+        return True
+    return False
 
 # Function to check if all zones are visited
 def all_zones_visited(user_id):
@@ -488,9 +509,11 @@ if user_email:
             col_idx = i % 3
             with cols[col_idx]:
                 if st.button(f"Check in to {zone_name}", key=f"manual_{zone_id}", use_container_width=True):
-                    log_visit(st.session_state.user_email, zone_id)
-                    st.success(f"Successfully checked in to {zone_name}! 🎉")
-                    time.sleep(1)  # Give time to see the success message
+                    if log_visit(st.session_state.user_email, zone_id):
+                        st.success(f"Successfully checked in to {zone_name}! 🎉")
+                    else:
+                        st.warning("Please wait a minute before checking in to this zone again.")
+                    time.sleep(1)
                     st.rerun()
     
     # 5. Progress Map
