@@ -5,6 +5,7 @@ import streamlit as st
 import os
 from st_supabase_connection import SupabaseConnection
 from supabase.lib.client_options import ClientOptions
+from supabase import create_client, Client
 
 # Set page to wide mode and other configurations
 st.set_page_config(
@@ -180,20 +181,27 @@ def show_zone_interface():
 # Initialize SQLite database
 @st.cache_resource
 def get_db_connection():
-    """Get Supabase connection with realtime enabled"""
-    conn = st.connection("supabase", type=SupabaseConnection)
+    """Get Supabase connection"""
+    # Get credentials from Streamlit secrets
+    url = st.secrets["supabase"]["url"]
+    key = st.secrets["supabase"]["key"]
     
-    # Enable realtime for visits table
-    channel = conn.channel('visits_channel')
-    channel.on(
-        'postgres_changes',
-        event='*',  # Listen to all events (INSERT, UPDATE, DELETE)
-        schema='public',
-        table='visits',
-        callback=lambda payload: st.rerun()
-    ).subscribe()
+    # Create direct Supabase client for realtime
+    supabase_client = create_client(url, key)
     
-    return conn
+    # Subscribe to realtime changes
+    channel = supabase_client.realtime\
+        .channel('visits_channel')\
+        .on('postgres_changes',
+            event='*',
+            schema='public',
+            table='visits',
+            callback=lambda payload: st.rerun()
+        )\
+        .subscribe()
+    
+    # Return Streamlit connection for regular queries
+    return st.connection("supabase", type=SupabaseConnection)
 
 # Function to log visit
 def log_visit(user_id, zone):
