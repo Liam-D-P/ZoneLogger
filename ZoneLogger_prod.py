@@ -220,13 +220,13 @@ def get_user_stats(user_id):
     """Get user statistics"""
     conn = get_db_connection()
     data = conn.table("visits")\
-        .select("zone, count(*)")\
+        .select("zone")\
         .eq("user_id", user_id)\
         .execute()
     
     visits_by_zone = defaultdict(int)
     for row in data.data:
-        visits_by_zone[row['zone']] = row['count']
+        visits_by_zone[row['zone']] += 1
     
     total_visits = sum(visits_by_zone.values())
     unique_zones = len(visits_by_zone)
@@ -278,13 +278,14 @@ def show_zone_traffic():
     """Show live zone activity"""
     conn = get_db_connection()
     data = conn.table("visits")\
-        .select("zone, count(*)")\
+        .select("zone")\
         .gte("timestamp", "now() - interval '30 minutes'")\
-        .group_by("zone")\
         .execute()
     
-    # Convert results to dictionary
-    traffic = {row['zone']: row['count'] for row in data.data}
+    # Count visits per zone
+    traffic = defaultdict(int)
+    for row in data.data:
+        traffic[row['zone']] += 1
     
     # Find the most visited zone
     if traffic:
@@ -292,10 +293,8 @@ def show_zone_traffic():
         most_visited_count = traffic[most_visited_zone_id]
         st.write(f"🔥 {zone_mapping[most_visited_zone_id]} is the hottest zone with {most_visited_count} explorers in the last 30 minutes!")
     
-    # Create columns for better layout
+    # Display zone traffic
     col1, col2 = st.columns(2)
-    
-    # Split zones into two groups for two columns
     zones_list = list(zone_mapping.items())
     mid_point = len(zones_list) // 2
     
@@ -303,7 +302,6 @@ def show_zone_traffic():
         current_col = col1 if i < mid_point else col2
         visits = traffic.get(zone_id, 0)
         
-        # Add fire emoji to most visited zone
         if traffic and zone_id == most_visited_zone_id:
             current_col.write(f"{zone_name} 🔥: {visits} visits in last 30 min")
         else:
