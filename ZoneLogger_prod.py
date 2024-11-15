@@ -3,6 +3,7 @@
 
 import streamlit as st
 import os
+from st_supabase_connection import SupabaseConnection
 
 # Set page to wide mode and other configurations
 st.set_page_config(
@@ -158,8 +159,8 @@ def show_zone_interface():
 # Initialize SQLite database
 @st.cache_resource
 def get_db_connection():
-    """Get PostgreSQL connection from Streamlit secrets"""
-    return st.connection('postgresql', type='sql')
+    """Get Supabase connection"""
+    return st.connection("supabase", type=SupabaseConnection)
 
 # Function to log visit
 def log_visit(user_id, zone):

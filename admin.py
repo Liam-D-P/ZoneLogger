@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+from st_supabase_connection import SupabaseConnection
 
 # Set page to wide mode
 st.set_page_config(
@@ -41,7 +42,8 @@ if not check_password():
 # Database connection
 @st.cache_resource
 def get_db_connection():
-    return st.connection('postgresql', type='sql')
+    """Get Supabase connection"""
+    return st.connection("supabase", type=SupabaseConnection)
 
 # Add these functions after the get_db_connection function
 
@@ -51,7 +53,8 @@ def get_prize_entries():
     return conn.query('''
         SELECT user_id, email 
         FROM prize_draw
-    ''', ttl=5)  # Cache results for 5 seconds
+        ORDER BY user_id
+    ''')
 
 def get_visits(start_date, end_date):
     """Get visits between specified dates"""
@@ -61,7 +64,7 @@ def get_visits(start_date, end_date):
         FROM visits 
         WHERE DATE(timestamp) BETWEEN :1 AND :2
         ORDER BY timestamp DESC
-    ''', params=[start_date, end_date], ttl=5)  # Cache results for 5 seconds
+    ''', params=[start_date, end_date])
 
 # Admin Dashboard
 st.title("Zone Explorer Admin Dashboard 🎯")
