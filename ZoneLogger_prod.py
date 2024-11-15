@@ -166,31 +166,33 @@ def get_db_connection():
 def log_visit(user_id, zone):
     """Log a zone visit"""
     conn = get_db_connection()
-    conn.query(
-        "INSERT INTO visits (user_id, zone, timestamp) VALUES (:1, :2, CURRENT_TIMESTAMP)",
-        params=[user_id, zone]
-    )
+    conn.table("visits").insert({
+        "user_id": user_id,
+        "zone": zone,
+        "timestamp": "now()"
+    }).execute()
 
 # Function to check if all zones are visited
 def all_zones_visited(user_id):
     """Check if user has visited all zones"""
     conn = get_db_connection()
-    result = conn.query(
-        "SELECT DISTINCT zone FROM visits WHERE user_id = :1",
-        params=[user_id]
-    )
-    visited_zones = [row.zone for row in result.itertuples()]
+    data = conn.table("visits")\
+        .select("zone")\
+        .eq("user_id", user_id)\
+        .execute()
+    visited_zones = set(row['zone'] for row in data.data)
     return all(zone in visited_zones for zone in zone_mapping.keys())
 
 # Function to visualize visited zones
 def visualize_zones(user_id):
     """Show visited zones status"""
     conn = get_db_connection()
-    result = conn.query(
-        "SELECT DISTINCT zone FROM visits WHERE user_id = :1",
-        params=[user_id]
-    )
-    visited_zones = [row.zone for row in result.itertuples()]
+    data = conn.table("visits")\
+        .select("zone")\
+        .eq("user_id", user_id)\
+        .execute()
+    
+    visited_zones = [row['zone'] for row in data.data]
     
     # Create two columns for better layout
     col1, col2 = st.columns(2)
@@ -217,19 +219,14 @@ def get_remaining_zones(user_id):
 def get_user_stats(user_id):
     """Get user statistics"""
     conn = get_db_connection()
-    result = conn.query(
-        """
-        SELECT zone, COUNT(*) as visits 
-        FROM visits 
-        WHERE user_id = :1 
-        GROUP BY zone
-        """,
-        params=[user_id]
-    )
+    data = conn.table("visits")\
+        .select("zone, count(*)")\
+        .eq("user_id", user_id)\
+        .execute()
     
     visits_by_zone = defaultdict(int)
-    for row in result.itertuples():
-        visits_by_zone[row.zone] = row.visits
+    for row in data.data:
+        visits_by_zone[row['zone']] = row['count']
     
     total_visits = sum(visits_by_zone.values())
     unique_zones = len(visits_by_zone)
@@ -280,17 +277,14 @@ def logout_user():
 def show_zone_traffic():
     """Show live zone activity"""
     conn = get_db_connection()
-    result = conn.query(
-        """
-        SELECT zone, COUNT(*) as visits 
-        FROM visits 
-        WHERE timestamp > CURRENT_TIMESTAMP - INTERVAL '30 minutes'
-        GROUP BY zone
-        """
-    )
+    data = conn.table("visits")\
+        .select("zone, count(*)")\
+        .gte("timestamp", "now() - interval '30 minutes'")\
+        .group_by("zone")\
+        .execute()
     
     # Convert results to dictionary
-    traffic = {row.zone: row.visits for row in result.itertuples()}
+    traffic = {row['zone']: row['count'] for row in data.data}
     
     # Find the most visited zone
     if traffic:
