@@ -43,6 +43,8 @@ if 'last_scanned_code' not in st.session_state:
     st.session_state.last_scanned_code = None
 if 'processing_scan' not in st.session_state:
     st.session_state.processing_scan = False
+if 'last_traffic_update' not in st.session_state:
+    st.session_state.last_traffic_update = time.time()
 
 # QR Code Functions
 def generate_qr_code(data):
@@ -90,67 +92,25 @@ def show_quick_buttons():
 
 def show_zone_interface():
     """Show the zone interface with tabs for different methods"""
-    # Check if we're in testing mode
     testing_mode = os.getenv('TESTING_MODE', 'false').lower() == 'true'
     
     if testing_mode:
-        # Show all tabs in testing mode
         tab1, tab2, tab3 = st.tabs(["📱 Scan QR Code", "🧪 Test QR Codes", "🔘 Quick Buttons"])
-        
-        with tab1:
-            st.markdown("### 📱 Scan Zone QR Code")
-            st.info("Point your camera at a zone QR code to log your visit")
-            
-            # Initialize the QR scanner
-            qr_code = qrcode_scanner(key='scanner')
-            
-            # Only process if we have a new QR code and aren't already processing
-            if (qr_code and 
-                qr_code != st.session_state.last_scanned_code and 
-                not st.session_state.processing_scan):
-                
-                st.session_state.processing_scan = True
-                
-                if qr_code in zone_mapping:
-                    # Check if this zone was visited in the last minute
-                    conn = get_db_connection()
-                    cursor = conn.execute('''
-                        SELECT COUNT(*) FROM visits 
-                        WHERE user_id = ? AND zone = ? 
-                        AND datetime(timestamp) > datetime('now', '-1 minute')
-                    ''', (st.session_state.user_email, qr_code))
-                    recent_visits = cursor.fetchone()[0]
-                    
-                    if recent_visits == 0:
-                        log_visit(st.session_state.user_email, qr_code)
-                        st.success(f"Successfully logged visit to {zone_mapping[qr_code]}! 🎉")
-                    else:
-                        st.warning("You've already logged this zone recently. Please wait a moment before scanning again.")
-                else:
-                    st.error("Invalid QR code! Please try again.")
-                
-                # Update last scanned code
-                st.session_state.last_scanned_code = qr_code
-                
-                # Reset processing flag after a short delay
-                time.sleep(1)
-                st.session_state.processing_scan = False
-        
-        with tab2:
-            show_test_qr_codes()
-        
-        with tab3:
-            show_quick_buttons()
-    
     else:
-        # Only show QR scanner in production mode
+        tab1 = st.tabs(["📱 Scan QR Code"])[0]
+    
+    with tab1:
         st.markdown("### 📱 Scan Zone QR Code")
         st.info("Point your camera at a zone QR code to log your visit")
+        
+        # Show progress map
+        st.markdown("### Your Progress Map:")
+        visualize_zones(st.session_state.user_email)
         
         # Initialize the QR scanner
         qr_code = qrcode_scanner(key='scanner')
         
-        # Only process if we have a new QR code and aren't already processing
+        # QR code processing logic...
         if (qr_code and 
             qr_code != st.session_state.last_scanned_code and 
             not st.session_state.processing_scan):
@@ -158,7 +118,6 @@ def show_zone_interface():
             st.session_state.processing_scan = True
             
             if qr_code in zone_mapping:
-                # Check if this zone was visited in the last minute
                 conn = get_db_connection()
                 cursor = conn.execute('''
                     SELECT COUNT(*) FROM visits 
@@ -175,12 +134,20 @@ def show_zone_interface():
             else:
                 st.error("Invalid QR code! Please try again.")
             
-            # Update last scanned code
             st.session_state.last_scanned_code = qr_code
-            
-            # Reset processing flag after a short delay
             time.sleep(1)
             st.session_state.processing_scan = False
+    
+    if testing_mode:
+        with tab2:
+            show_test_qr_codes()
+            st.markdown("### Your Progress:")
+            visualize_zones(st.session_state.user_email)
+        
+        with tab3:
+            show_quick_buttons()
+            st.markdown("### Your Progress:")
+            visualize_zones(st.session_state.user_email)
 
 # Initialize SQLite database
 @st.cache_resource
@@ -351,19 +318,26 @@ def logout_user():
 
 # Add the show_zone_traffic function
 def show_zone_traffic():
+    """Show recent zone activity with automatic updates"""
     st.write("📊 Recent Zone Activity")
     
-    # Get visit counts for last 30 minutes
+    # Update traffic data every 5 seconds
+    current_time = time.time()
+    if current_time - st.session_state.last_traffic_update >= 5:
+        st.session_state.last_traffic_update = current_time
+        st.rerun()
+    
+    # Get visit counts for all users in last 30 minutes
     conn = get_db_connection()
     cursor = conn.execute('''
-        SELECT zone, COUNT(*) as visits 
+        SELECT zone, COUNT(DISTINCT user_id) as unique_users, COUNT(*) as total_visits
         FROM visits 
         WHERE datetime(timestamp) > datetime('now', '-30 minutes')
         GROUP BY zone
     ''')
     
     # Convert results to dictionary
-    traffic = {row[0]: row[1] for row in cursor.fetchall()}
+    traffic = {row[0]: {'users': row[1], 'visits': row[2]} for row in cursor.fetchall()}
     
     # Create columns for better layout
     col1, col2 = st.columns(2)
@@ -374,9 +348,9 @@ def show_zone_traffic():
     
     for i, (zone_id, zone_name) in enumerate(zones_list):
         current_col = col1 if i < mid_point else col2
-        visits = traffic.get(zone_id, 0)
+        stats = traffic.get(zone_id, {'users': 0, 'visits': 0})
         
-        current_col.write(f"{zone_name}: {visits} visits in last 30 min")
+        current_col.write(f"{zone_name}: {stats['visits']} visits by {stats['users']} users in last 30 min")
 
 # Add this helper function near the other helper functions
 def get_name_from_email(email):
@@ -464,21 +438,16 @@ if 'user_email' not in cookies and not st.session_state.show_email_override:
 else:
     user_email = cookies['user_email']
     st.session_state.user_email = user_email
-    user_name = get_name_from_email(user_email)
-    st.markdown(f"### 👋 Hello {user_name}!")
 
 if user_email:
-    # Add traffic display before or after zone buttons
-    show_zone_traffic()
+    # 1. User Identity & Status
+    user_name = get_name_from_email(user_email)
+    st.markdown(f"### 👋 Hello {user_name}!")
     
-    # Process zone visits
-    show_zone_interface()
+    # 2. User Progress Stats
+    stats = get_user_stats(st.session_state.user_email)
+    rank = get_user_rank(st.session_state.user_email)
     
-    # Then get and display updated stats
-    stats = get_user_stats(user_email)
-    rank = get_user_rank(user_email)
-    
-    # Create three columns for stats with updated data
     col1, col2, col3 = st.columns(3)
     with col1:
         st.metric("Rank", rank)
@@ -487,19 +456,20 @@ if user_email:
     with col3:
         st.metric("Total Visits", stats['total_visits'])
     
-    # Add progress bar with updated data
+    # 3. Progress Bar
     st.progress(stats['completion_percentage'] / 100, text=f"Journey Progress: {stats['completion_percentage']:.1f}%")
     
-    # Show progress map
-    st.markdown("### Your Progress Map:")
-    visualize_zones(user_email)
+    # 4. Zone Activity Overview
+    show_zone_traffic()
     
-    # Check if all zones are visited
+    # 5. Main Interaction Area
+    show_zone_interface()
+    
+    # 6. Prize Draw Section (at bottom)
     if all_zones_visited(user_email):
         st.markdown("---")
         st.markdown("### 🎉 Congratulations!")
         
-        # Check if already entered before showing button
         conn = get_db_connection()
         cursor = conn.execute('SELECT * FROM prize_draw WHERE user_id = ?', (user_email,))
         already_entered = cursor.fetchone() is not None
@@ -509,7 +479,6 @@ if user_email:
             st.info("Good luck! Winners will be notified by email 🍀")
         else:
             st.success("You've completed all zones! Click below to enter the prize draw.")
-            # Make button bigger and centered
             col1, col2, col3 = st.columns([1,2,1])
             with col2:
                 if st.button("Enter Prize Draw! 🎁", type="primary", use_container_width=True):
