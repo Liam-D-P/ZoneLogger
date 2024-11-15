@@ -126,16 +126,23 @@ def show_zone_interface():
             
             if qr_code in zone_mapping:
                 conn = get_db_connection()
-                cursor = conn.execute('''
-                    SELECT COUNT(*) FROM visits 
-                    WHERE user_id = ? AND zone = ? 
-                    AND datetime(timestamp) > datetime('now', '-1 minute')
-                ''', (st.session_state.user_email, qr_code))
-                recent_visits = cursor.fetchone()[0]
+                from datetime import datetime, timedelta
+                one_min_ago = (datetime.now() - timedelta(minutes=1)).isoformat()
+                
+                result = conn.table("visits")\
+                    .select("*")\
+                    .eq("user_id", st.session_state.user_email)\
+                    .eq("zone", qr_code)\
+                    .gte("timestamp", one_min_ago)\
+                    .execute()
+                
+                recent_visits = len(result.data)
                 
                 if recent_visits == 0:
                     log_visit(st.session_state.user_email, qr_code)
                     st.success(f"Successfully logged visit to {zone_mapping[qr_code]}! 🎉")
+                    time.sleep(1)  # Give time to see the success message
+                    st.rerun()  # Refresh to update the UI
                 else:
                     st.warning("You've already logged this zone recently. Please wait a moment before scanning again.")
             else:
@@ -423,18 +430,23 @@ if user_email:
         # QR code processing logic
         if qr_code in zone_mapping:
             conn = get_db_connection()
+            from datetime import datetime, timedelta
+            one_min_ago = (datetime.now() - timedelta(minutes=1)).isoformat()
+            
             result = conn.table("visits")\
-        .select("*")\
-        .eq("user_id", st.session_state.user_email)\
-        .eq("zone", qr_code)\
-                .filter("timestamp >= now() - interval '1 minute'")\
-                            .execute()
-    
+                .select("*")\
+                .eq("user_id", st.session_state.user_email)\
+                .eq("zone", qr_code)\
+                .gte("timestamp", one_min_ago)\
+                .execute()
+            
             recent_visits = len(result.data)
-    
+            
             if recent_visits == 0:
                 log_visit(st.session_state.user_email, qr_code)
                 st.success(f"Successfully logged visit to {zone_mapping[qr_code]}! 🎉")
+                time.sleep(1)  # Give time to see the success message
+                st.rerun()  # Refresh to update the UI
             else:
                 st.warning("You've already logged this zone recently. Please wait a moment before scanning again.")
         else:
