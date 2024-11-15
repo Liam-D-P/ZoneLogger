@@ -103,11 +103,11 @@ def show_zone_interface():
         st.markdown("### 📱 Scan Zone QR Code")
         st.info("Point your camera at a zone QR code to log your visit")
         
-        # Show zone activity
-        show_zone_traffic()
-        
-        # Initialize the QR scanner
+        # Initialize the QR scanner first
         qr_code = qrcode_scanner(key='scanner')
+        
+        # Then show zone activity
+        show_zone_traffic()
         
         # QR code processing logic...
         if (qr_code and 
