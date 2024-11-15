@@ -4,6 +4,7 @@
 import streamlit as st
 import os
 from st_supabase_connection import SupabaseConnection
+from supabase.lib.client_options import ClientOptions
 
 # Set page to wide mode and other configurations
 st.set_page_config(
@@ -179,8 +180,20 @@ def show_zone_interface():
 # Initialize SQLite database
 @st.cache_resource
 def get_db_connection():
-    """Get Supabase connection"""
-    return st.connection("supabase", type=SupabaseConnection)
+    """Get Supabase connection with realtime enabled"""
+    conn = st.connection("supabase", type=SupabaseConnection)
+    
+    # Enable realtime for visits table
+    channel = conn.channel('visits_channel')
+    channel.on(
+        'postgres_changes',
+        event='*',  # Listen to all events (INSERT, UPDATE, DELETE)
+        schema='public',
+        table='visits',
+        callback=lambda payload: st.rerun()
+    ).subscribe()
+    
+    return conn
 
 # Function to log visit
 def log_visit(user_id, zone):
@@ -347,11 +360,11 @@ def get_zone_traffic():
 
 # Update the show_zone_traffic function to use the cached data
 def show_zone_traffic():
-    """Show live zone activity"""
+    """Show live zone activity with real-time updates"""
     st.markdown("### 👥 Live Zone Activity")
-    st.info("See which zones are currently popular with all explorers (updates every 30 seconds)")
+    st.info("See which zones are currently popular (updates in real-time) ⚡")
     
-    # Use cached traffic data
+    # Get traffic data (no caching needed now)
     traffic = get_zone_traffic()
     
     # Find the most visited zone
