@@ -94,17 +94,32 @@ def show_quick_buttons():
                 st.success(f"Great job! You've discovered {zone_name}!")
                 st.rerun()
 
+def show_manual_checkin():
+    """Show manual check-in buttons for each zone"""
+    st.markdown("### 🔄 Manual Check-in")
+    st.info("If QR scanning isn't working, you can manually check in to a zone here")
+    
+    # Create columns for zone buttons
+    cols = st.columns(3)
+    for i, (zone_id, zone_name) in enumerate(zone_mapping.items()):
+        col_idx = i % 3
+        with cols[col_idx]:
+            if st.button(f"Check in to {zone_name}", key=f"manual_{zone_id}", use_container_width=True):
+                # Actually log the visit
+                log_visit(st.session_state.user_email, zone_id)
+                st.success(f"Successfully checked in to {zone_name}! 🎉")
+                time.sleep(1)  # Give time to see the success message
+                st.rerun()
+
 def show_zone_interface():
     """Show the zone interface with tabs for different methods"""
     # Check if we're in testing mode
     testing_mode = os.getenv('TESTING_MODE', 'false').lower() == 'true'
     
     if testing_mode:
-        # Show all tabs in testing mode
-        tab1, tab2, tab3 = st.tabs(["📱 Scan QR Code", "🧪 Test QR Codes", "🔘 Quick Buttons"])
+        tab1, tab2, tab3, tab4 = st.tabs(["📱 Scan QR Code", "✍️ Manual Check-in", "🧪 Test QR Codes", "🔘 Quick Buttons"])
     else:
-        # Only show QR scanner in production mode
-        tab1 = st.tabs(["📱 Scan QR Code"])[0]
+        tab1, tab2 = st.tabs(["📱 Scan QR Code", "✍️ Manual Check-in"])
     
     with tab1:
         st.markdown("### 📱 Scan Zone QR Code")
@@ -148,38 +163,14 @@ def show_zone_interface():
             time.sleep(1)
             st.session_state.processing_scan = False
     
+    with tab2:
+        show_manual_checkin()
+    
     if testing_mode:
-        with tab2:
-            st.markdown("### 🧪 Test QR Codes")
-            st.info("Use these QR codes to test the scanner. Each code represents a different zone.")
-            
-            # Create columns for QR codes
-            cols = st.columns(3)
-            for i, (zone_id, zone_name) in enumerate(zone_mapping.items()):
-                col_idx = i % 3
-                with cols[col_idx]:
-                    qr_base64 = generate_qr_code(zone_id)
-                    st.markdown(f"##### {zone_name}")
-                    st.markdown(
-                        f'<img src="data:image/png;base64,{qr_base64}" alt="{zone_name}" width="150">',
-                        unsafe_allow_html=True
-                    )
-        
         with tab3:
-            st.markdown("### Quick Zone Completion")
-            st.info("Click buttons below to mark zones as visited")
-            
-            # Create columns for zone buttons
-            cols = st.columns(3)
-            for i, (zone_id, zone_name) in enumerate(zone_mapping.items()):
-                col_idx = i % 3
-                with cols[col_idx]:
-                    if st.button(f"Visit {zone_name}", key=f"visit_{zone_id}", use_container_width=True):
-                        # Actually log the visit
-                        log_visit(st.session_state.user_email, zone_id)
-                        st.success(f"Great job! You've discovered {zone_name}!")
-                        time.sleep(1)  # Give time to see the success message
-                        st.rerun()
+            show_test_qr_codes()
+        with tab4:
+            show_quick_buttons()
 
 # Initialize SQLite database
 @st.cache_resource
@@ -372,7 +363,7 @@ with st.expander("Need Help? 🤔"):
     A: Visit all X zones to be eligible for the prize draw
     
     **Q: I need assistance!**
-    A: Find a volunteer from the Qaulity Engineering CoE stand - they will be happy to help!
+    A: Find a volunteer from the Quality Engineering CoE stand - they will be happy to help!
     """)
 
 st.markdown("""
@@ -428,55 +419,8 @@ if user_email:
     # 1. User Identity
     user_name = get_name_from_email(user_email)
     st.markdown(f"### 👋 Hello {user_name}!")
-    st.markdown("---")  # Divider
     
-    # 2. Scan QR Code Section
-    st.markdown("### 📱 Scan Zone QR Code")
-    st.info("Point your camera at a zone QR code to log your visit")
-    
-    # Initialize the QR scanner
-    qr_code = qrcode_scanner(key='scanner')
-    st.markdown("")  # Add space
-    
-    # QR code processing logic...
-    if (qr_code and 
-        qr_code != st.session_state.last_scanned_code and 
-        not st.session_state.processing_scan):
-        
-        st.session_state.processing_scan = True
-        
-        # QR code processing logic
-        if qr_code in zone_mapping:
-            conn = get_db_connection()
-            from datetime import datetime, timedelta
-            one_min_ago = (datetime.now() - timedelta(minutes=1)).isoformat()
-            
-            result = conn.table("visits")\
-                .select("*")\
-                .eq("user_id", st.session_state.user_email)\
-                .eq("zone", qr_code)\
-                .gte("timestamp", one_min_ago)\
-                .execute()
-            
-            recent_visits = len(result.data)
-            
-            if recent_visits == 0:
-                log_visit(st.session_state.user_email, qr_code)
-                st.success(f"Successfully logged visit to {zone_mapping[qr_code]}! 🎉")
-                time.sleep(1)  # Give time to see the success message
-                st.rerun()  # Refresh to update the UI
-            else:
-                st.warning("You've already logged this zone recently. Please wait a moment before scanning again.")
-        else:
-            st.error("Invalid QR code! Please try again.")
-        
-        st.session_state.last_scanned_code = qr_code
-        time.sleep(1)
-        st.session_state.processing_scan = False
-    
-    st.markdown("---")  # Divider
-    
-    # 3. Progress Stats (remove "Your Progress" heading)
+    # 2. Progress Stats
     stats = get_user_stats(user_email)
     rank = get_user_rank(user_email)
     
@@ -488,21 +432,73 @@ if user_email:
     with col3:
         st.metric("Total Visits", stats['total_visits'])
     
-    # 4. Progress Bar
-    st.markdown("")  # Add space
+    # 3. Progress Bar
     st.progress(stats['completion_percentage'] / 100, text=f"Journey Progress: {stats['completion_percentage']:.1f}%")
     
-    # 5. Progress Map (change heading)
-    st.markdown("")  # Add space
-    st.markdown("### Your Progress")  # Changed from "Your Progress Map"
-    visualize_zones(user_email)
+    # 4. Main Interface with Tabs
+    tab1, tab2 = st.tabs(["📱 Scan QR Code", "✍️ Manual Check-in"])
     
-    st.markdown("---")  # Divider
+    with tab1:
+        st.markdown("### 📱 Scan Zone QR Code")
+        st.info("Point your camera at a zone QR code to log your visit")
+        qr_code = qrcode_scanner(key='scanner')
+        
+        # QR code processing logic...
+        if (qr_code and 
+            qr_code != st.session_state.last_scanned_code and 
+            not st.session_state.processing_scan):
+            
+            st.session_state.processing_scan = True
+            
+            if qr_code in zone_mapping:
+                conn = get_db_connection()
+                from datetime import datetime, timedelta
+                one_min_ago = (datetime.now() - timedelta(minutes=1)).isoformat()
+                
+                result = conn.table("visits")\
+                    .select("*")\
+                    .eq("user_id", st.session_state.user_email)\
+                    .eq("zone", qr_code)\
+                    .gte("timestamp", one_min_ago)\
+                    .execute()
+                
+                recent_visits = len(result.data)
+                
+                if recent_visits == 0:
+                    log_visit(st.session_state.user_email, qr_code)
+                    st.success(f"Successfully logged visit to {zone_mapping[qr_code]}! 🎉")
+                    time.sleep(1)  # Give time to see the success message
+                    st.rerun()  # Refresh to update the UI
+                else:
+                    st.warning("You've already logged this zone recently. Please wait a moment before scanning again.")
+            else:
+                st.error("Invalid QR code! Please try again.")
+            
+            st.session_state.last_scanned_code = qr_code
+            time.sleep(1)
+            st.session_state.processing_scan = False
+    
+    with tab2:
+        st.markdown("### ✍️ Manual Zone Check-in")
+        st.info("If QR scanning isn't working, you can manually check in to a zone here")
+        
+        # Create columns for zone buttons
+        cols = st.columns(3)
+        for i, (zone_id, zone_name) in enumerate(zone_mapping.items()):
+            col_idx = i % 3
+            with cols[col_idx]:
+                if st.button(f"Check in to {zone_name}", key=f"manual_{zone_id}", use_container_width=True):
+                    log_visit(st.session_state.user_email, zone_id)
+                    st.success(f"Successfully checked in to {zone_name}! 🎉")
+                    time.sleep(1)  # Give time to see the success message
+                    st.rerun()
+    
+    # 5. Progress Map
+    st.markdown("### Your Progress")
+    visualize_zones(user_email)
     
     # 6. Zone Activity
     show_zone_traffic()
-    
-    st.markdown("---")  # Divider
     
     # 7. Prize Draw Section
     if all_zones_visited(user_email):
