@@ -50,21 +50,18 @@ def get_db_connection():
 def get_prize_entries():
     """Get all prize draw entries"""
     conn = get_db_connection()
-    return conn.query('''
-        SELECT user_id, email 
-        FROM prize_draw
-        ORDER BY user_id
-    ''')
+    data = conn.table("prize_draw").select("*").execute()
+    return data.data
 
 def get_visits(start_date, end_date):
     """Get visits between specified dates"""
     conn = get_db_connection()
-    return conn.query('''
-        SELECT user_id, zone, timestamp 
-        FROM visits 
-        WHERE DATE(timestamp) BETWEEN :1 AND :2
-        ORDER BY timestamp DESC
-    ''', params=[start_date, end_date])
+    data = conn.table("visits")\
+        .select("*")\
+        .gte("timestamp", start_date)\
+        .lte("timestamp", end_date)\
+        .execute()
+    return data.data
 
 # Admin Dashboard
 st.title("Zone Explorer Admin Dashboard 🎯")
