@@ -412,26 +412,30 @@ st.markdown("""
 Ready to begin your adventure? Let's go! 
 """)
 
-# Add a toggle for email override
-with st.expander("⚠️ Testing Tools"):
-    st.session_state.show_email_override = st.checkbox("Override Current Email", 
-        value=st.session_state.show_email_override)
-    
-    if st.session_state.show_email_override:
-        temp_email = st.text_input("Testing Email:", 
-            value=cookies.get('user_email', ''))
-        if st.button("Use This Email"):
-            cookies['user_email'] = temp_email
-            cookies.save()
-            st.session_state.user_email = temp_email
-            st.success(f"Now using email: {temp_email}")
-            st.rerun()
+# Replace the testing tools expander section with this:
+testing_mode = os.getenv('TESTING_MODE', 'false').lower() == 'true'
 
-    st.warning("Warning: These actions will affect your progress!")
-    if st.button("Reset My Progress", type="primary"):
-        reset_user_progress(st.session_state.user_email)
-        st.success("Progress reset successfully!")
-        st.rerun()
+if testing_mode:
+    # Only show testing tools when in testing mode
+    with st.expander("⚠️ Testing Tools"):
+        st.session_state.show_email_override = st.checkbox("Override Current Email", 
+            value=st.session_state.show_email_override)
+        
+        if st.session_state.show_email_override:
+            temp_email = st.text_input("Testing Email:", 
+                value=cookies.get('user_email', ''))
+            if st.button("Use This Email"):
+                cookies['user_email'] = temp_email
+                cookies.save()
+                st.session_state.user_email = temp_email
+                st.success(f"Now using email: {temp_email}")
+                st.rerun()
+
+        st.warning("Warning: These actions will affect your progress!")
+        if st.button("Reset My Progress", type="primary"):
+            reset_user_progress(st.session_state.user_email)
+            st.success("Progress reset successfully!")
+            st.rerun()
 
 # Check for user email in cookies (keep existing logic)
 if 'user_email' not in cookies and not st.session_state.show_email_override:
