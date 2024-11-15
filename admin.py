@@ -1,25 +1,74 @@
 import streamlit as st
-import sqlite3
 import pandas as pd
 from datetime import datetime
-import random
 
 # Set page to wide mode
-st.set_page_config(layout="wide")
+st.set_page_config(
+    page_title="Zone Explorer Admin",
+    page_icon="⚙️",
+    layout="wide"
+)
 
-# Initialize SQLite database connection
+# Password protection
+def check_password():
+    """Returns `True` if the user has the correct password."""
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        if st.session_state["password"] == "Kj#9mP$vN2@xL5nQ":  # Hardcoded password
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # Don't store password
+        else:
+            st.session_state["password_correct"] = False
+            st.error("😕 Password incorrect")
+
+    if "password_correct" not in st.session_state:
+        # First run, show input for password
+        st.markdown("### 🔒 Admin Authentication Required")
+        st.text_input(
+            "Please enter the admin password", 
+            type="password", 
+            key="password",
+            on_change=password_entered
+        )
+        return False
+    
+    return st.session_state["password_correct"]
+
+# Show admin interface only if password is correct
+if not check_password():
+    st.stop()
+
+# Database connection
+@st.cache_resource
 def get_db_connection():
-    return sqlite3.connect('visits.db', check_same_thread=False)
+    return st.connection('postgresql', type='sql')
+
+# Add these functions after the get_db_connection function
+
+def get_prize_entries():
+    """Get all prize draw entries"""
+    conn = get_db_connection()
+    return conn.query('''
+        SELECT user_id, email 
+        FROM prize_draw
+    ''', ttl=5)  # Cache results for 5 seconds
+
+def get_visits(start_date, end_date):
+    """Get visits between specified dates"""
+    conn = get_db_connection()
+    return conn.query('''
+        SELECT user_id, zone, timestamp 
+        FROM visits 
+        WHERE DATE(timestamp) BETWEEN :1 AND :2
+        ORDER BY timestamp DESC
+    ''', params=[start_date, end_date], ttl=5)  # Cache results for 5 seconds
 
 # Admin Dashboard
 st.title("Zone Explorer Admin Dashboard 🎯")
 
-# Database Contents
-conn = get_db_connection()
-
 # Prize Draw Section
 st.header("Prize Draw Entries 🎁")
-prize_draw_entries = conn.execute('SELECT * FROM prize_draw').fetchall()
+prize_draw_entries = get_prize_entries()
 prize_draw_df = pd.DataFrame(prize_draw_entries, columns=["User ID", "Email"])
 st.dataframe(prize_draw_df, use_container_width=True)
 
@@ -57,12 +106,7 @@ with col2:
     end_date = st.date_input("End Date", datetime.now())
 
 # Query with date filter
-visits = conn.execute('''
-    SELECT * FROM visits 
-    WHERE date(timestamp) BETWEEN date(?) AND date(?)
-    ORDER BY timestamp DESC
-''', (start_date, end_date)).fetchall()
-
+visits = get_visits(start_date, end_date)
 visits_df = pd.DataFrame(visits, columns=["User ID", "Zone", "Timestamp"])
 st.dataframe(visits_df, use_container_width=True)
 

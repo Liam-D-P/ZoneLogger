@@ -158,95 +158,38 @@ def show_zone_interface():
 # Initialize SQLite database
 @st.cache_resource
 def get_db_connection():
-    conn = sqlite3.connect('visits.db', check_same_thread=False)
-    
-    # Check if timestamp column exists
-    cursor = conn.execute("PRAGMA table_info(visits)")
-    columns = [col[1] for col in cursor.fetchall()]
-    
-    if 'timestamp' not in columns:
-        # Get existing data
-        try:
-            cursor = conn.execute('SELECT user_id, zone FROM visits')
-            existing_data = cursor.fetchall()
-            
-            # Drop existing table
-            conn.execute('DROP TABLE IF EXISTS visits')
-            
-            # Create new table with timestamp
-            conn.execute('''
-                CREATE TABLE visits (
-                    user_id TEXT,
-                    zone TEXT,
-                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-            
-            # Reinsert existing data with current timestamp
-            for user_id, zone in existing_data:
-                conn.execute('''
-                    INSERT INTO visits (user_id, zone, timestamp) 
-                    VALUES (?, ?, datetime('now'))
-                ''', (user_id, zone))
-            
-            conn.commit()
-        except sqlite3.OperationalError:
-            # If table doesn't exist yet, just create it
-            conn.execute('''
-                CREATE TABLE visits (
-                    user_id TEXT,
-                    zone TEXT,
-                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-    
-    # Create prize_draw table if it doesn't exist
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS prize_draw (
-            user_id TEXT,
-            email TEXT
-        )
-    ''')
-    conn.commit()
-    return conn
+    """Get PostgreSQL connection from Streamlit secrets"""
+    return st.connection('postgresql', type='sql')
 
 # Function to log visit
 def log_visit(user_id, zone):
+    """Log a zone visit"""
     conn = get_db_connection()
-    conn.execute('''
-        INSERT INTO visits (user_id, zone, timestamp) 
-        VALUES (?, ?, datetime('now'))
-    ''', (user_id, zone))
-    conn.commit()
+    conn.query(
+        "INSERT INTO visits (user_id, zone, timestamp) VALUES (:1, :2, CURRENT_TIMESTAMP)",
+        params=[user_id, zone]
+    )
 
 # Function to check if all zones are visited
 def all_zones_visited(user_id):
+    """Check if user has visited all zones"""
     conn = get_db_connection()
-    cursor = conn.execute('SELECT zone FROM visits WHERE user_id = ?', (user_id,))
-    visited_zones = [row[0] for row in cursor.fetchall()]
-    all_visited = all(zone in visited_zones for zone in zone_mapping.keys())
-    
-    # Initialize the session state key if it doesn't exist
-    if 'shown_completion_balloons' not in st.session_state:
-        st.session_state.shown_completion_balloons = False
-    
-    # Show balloons if all zones just completed and balloons haven't been shown yet
-    if all_visited and not st.session_state.shown_completion_balloons:
-        st.balloons()
-        st.session_state.shown_completion_balloons = True
-    
-    # Reset balloon state if not all zones are visited
-    if not all_visited:
-        st.session_state.shown_completion_balloons = False
-    
-    return all_visited
+    result = conn.query(
+        "SELECT DISTINCT zone FROM visits WHERE user_id = :1",
+        params=[user_id]
+    )
+    visited_zones = [row.zone for row in result.itertuples()]
+    return all(zone in visited_zones for zone in zone_mapping.keys())
 
 # Function to visualize visited zones
 def visualize_zones(user_id):
-    st.write("Zone Visit Status:")
+    """Show visited zones status"""
     conn = get_db_connection()
-    cursor = conn.execute('SELECT zone FROM visits WHERE user_id = ?', (user_id,))
-    visited_zones = [row[0] for row in cursor.fetchall()]
+    result = conn.query(
+        "SELECT DISTINCT zone FROM visits WHERE user_id = :1",
+        params=[user_id]
+    )
+    visited_zones = [row.zone for row in result.itertuples()]
     
     # Create two columns for better layout
     col1, col2 = st.columns(2)
@@ -271,11 +214,21 @@ def get_remaining_zones(user_id):
 
 # Function to get user stats
 def get_user_stats(user_id):
+    """Get user statistics"""
     conn = get_db_connection()
-    cursor = conn.execute('SELECT zone, COUNT(*) as visits FROM visits WHERE user_id = ? GROUP BY zone', (user_id,))
+    result = conn.query(
+        """
+        SELECT zone, COUNT(*) as visits 
+        FROM visits 
+        WHERE user_id = :1 
+        GROUP BY zone
+        """,
+        params=[user_id]
+    )
+    
     visits_by_zone = defaultdict(int)
-    for zone, count in cursor.fetchall():
-        visits_by_zone[zone] = count
+    for row in result.itertuples():
+        visits_by_zone[row.zone] = row.visits
     
     total_visits = sum(visits_by_zone.values())
     unique_zones = len(visits_by_zone)
@@ -324,20 +277,19 @@ def logout_user():
 
 # Add the show_zone_traffic function
 def show_zone_traffic():
-    st.markdown("### 👥 Live Zone Activity")
-    st.info("See which zones are currently popular with other explorers")
-    
-    # Get visit counts for last 30 minutes
+    """Show live zone activity"""
     conn = get_db_connection()
-    cursor = conn.execute('''
+    result = conn.query(
+        """
         SELECT zone, COUNT(*) as visits 
         FROM visits 
-        WHERE datetime(timestamp) > datetime('now', '-30 minutes')
+        WHERE timestamp > CURRENT_TIMESTAMP - INTERVAL '30 minutes'
         GROUP BY zone
-    ''')
+        """
+    )
     
     # Convert results to dictionary
-    traffic = {row[0]: row[1] for row in cursor.fetchall()}
+    traffic = {row.zone: row.visits for row in result.itertuples()}
     
     # Find the most visited zone
     if traffic:
@@ -531,7 +483,6 @@ if user_email:
             st.success("You've completed all zones and are entered in the prize draw! 🎁")
             st.info("Good luck! Winners will be notified by email 🍀")
         else:
-            st.success("You've completed all zones! Click below to enter the prize draw.")
             col1, col2, col3 = st.columns([1,2,1])
             with col2:
                 if st.button("Enter Prize Draw! 🎁", type="primary", use_container_width=True):
@@ -540,5 +491,6 @@ if user_email:
                     st.balloons()
                     st.success("🎊 Fantastic! You're now entered in the prize draw!")
                     st.info("Good luck! Winners will be notified by email 🍀")
+                    st.rerun()  # Refresh to show the entered state
     else:
         st.info("💡 Complete all zones to unlock the prize draw entry!")
