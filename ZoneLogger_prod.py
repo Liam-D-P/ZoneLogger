@@ -150,9 +150,20 @@ def show_zone_interface():
     
     if testing_mode:
         with tab2:
-            show_test_qr_codes()
-            st.markdown("### Your Progress:")
-            visualize_zones(st.session_state.user_email)
+            st.markdown("### 🧪 Test QR Codes")
+            st.info("Use these QR codes to test the scanner. Each code represents a different zone.")
+            
+            # Create columns for QR codes
+            cols = st.columns(3)
+            for i, (zone_id, zone_name) in enumerate(zone_mapping.items()):
+                col_idx = i % 3
+                with cols[col_idx]:
+                    qr_base64 = generate_qr_code(zone_id)
+                    st.markdown(f"##### {zone_name}")
+                    st.markdown(
+                        f'<img src="data:image/png;base64,{qr_base64}" alt="{zone_name}" width="150">',
+                        unsafe_allow_html=True
+                    )
         
         with tab3:
             st.markdown("### Quick Zone Completion")
