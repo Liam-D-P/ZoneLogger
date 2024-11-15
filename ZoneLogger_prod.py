@@ -33,7 +33,13 @@ zone_mapping = {
     "zone789ghi": "Zone 3",
     "zone012jkl": "Zone 4",
     "zone345mno": "Zone 5",
-    "zone678pqr": "Zone 6"
+    "zone678pqr": "Zone 6",
+    "zone901stu": "Zone 7",
+    "zone234vwx": "Zone 8",
+    "zone567yza": "Zone 9",
+    "zone890bcd": "Zone 10",
+    "zone321efg": "Zone 11",
+    "zone654hij": "Zone 12"
 }
 
 # Initialize cookies manager with a password
@@ -67,7 +73,7 @@ def show_test_qr_codes():
     st.markdown("### 🧪 Test QR Codes")
     st.info("Use these QR codes to test the scanner. Each code represents a different zone.")
     
-    # Create columns for QR codes
+    # Create columns for QR codes (3 columns)
     cols = st.columns(3)
     for i, (zone_id, zone_name) in enumerate(zone_mapping.items()):
         col_idx = i % 3
@@ -106,6 +112,7 @@ def show_manual_checkin():
         
     st.info("If QR scanning isn't working, you can manually check in to a zone here")
     
+    # Create 3 columns for zone buttons
     cols = st.columns(3)
     for i, (zone_id, zone_name) in enumerate(zone_mapping.items()):
         col_idx = i % 3
@@ -239,15 +246,21 @@ def visualize_zones(user_id):
     
     visited_zones = [row['zone'] for row in data.data]
     
-    # Create two columns for better layout
-    col1, col2 = st.columns(2)
+    # Create three columns for better layout with 12 zones
+    col1, col2, col3 = st.columns(3)
     
-    # Split zones into two groups for two columns
+    # Split zones into three groups for three columns
     zones_list = list(zone_mapping.items())
-    mid_point = len(zones_list) // 2
+    third_point = len(zones_list) // 3
     
     for i, (complex_zone, friendly_zone) in enumerate(zones_list):
-        current_col = col1 if i < mid_point else col2
+        if i < third_point:
+            current_col = col1
+        elif i < third_point * 2:
+            current_col = col2
+        else:
+            current_col = col3
+            
         if complex_zone in visited_zones:
             current_col.markdown(f"✅ {friendly_zone}", unsafe_allow_html=True)
         else:
@@ -283,9 +296,9 @@ def get_user_rank(user_email):
         stats = get_user_stats(user_email)
         if stats['unique_zones'] == 0:
             return "Novice Explorer 🌱"
-        elif stats['unique_zones'] <= 2:
+        elif stats['unique_zones'] <= 3:  # Updated threshold
             return "Zone Seeker 🔍"
-        elif stats['unique_zones'] <= 4:
+        elif stats['unique_zones'] <= 7:  # Updated threshold
             return "Zone Master 🌟"
         else:
             return "Zone Expert 💫"
