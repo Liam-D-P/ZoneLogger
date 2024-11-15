@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime
 from st_supabase_connection import SupabaseConnection
 from ZoneLogger_prod import zone_mapping  # Import your zone mapping
+import time
 
 # Set page to wide mode
 st.set_page_config(
@@ -46,8 +47,6 @@ def get_db_connection():
     """Get Supabase connection"""
     return st.connection("supabase", type=SupabaseConnection)
 
-# Add these functions after the get_db_connection function
-
 def get_prize_entries():
     """Get all prize draw entries"""
     conn = get_db_connection()
@@ -68,13 +67,40 @@ def get_visits(start_date, end_date):
         .execute()
     return data.data
 
+# Add this after the password check
+if 'last_refresh' not in st.session_state:
+    st.session_state.last_refresh = time.time()
+
 # Admin Dashboard
 st.title("Zone Explorer Admin Dashboard 🎯")
+
+# Add refresh indicators and manual refresh button
+col1, col2, col3 = st.columns([2, 1, 1])
+with col1:
+    current_time = time.time()
+    time_since_refresh = current_time - st.session_state.last_refresh
+    time_until_refresh = max(5 - time_since_refresh, 0)
+    st.progress(time_until_refresh/5, f"Next refresh in {time_until_refresh:.1f}s")
+with col2:
+    st.info("🔄 Auto-refresh: 5s")
+with col3:
+    if st.button("🔄 Refresh Now", use_container_width=True):
+        st.rerun()
+
+# Check if it's time to refresh
+if time_since_refresh >= 5:
+    st.session_state.last_refresh = current_time
+    st.rerun()
 
 # Prize Draw Section
 st.header("Prize Draw Entries 🎁")
 prize_draw_entries = get_prize_entries()
-prize_draw_df = pd.DataFrame(prize_draw_entries, columns=["User ID", "Email"])
+prize_draw_df = pd.DataFrame([
+    {
+        'User ID': entry['user_id'],
+        'Email': entry['email']
+    } for entry in prize_draw_entries
+])
 st.dataframe(prize_draw_df, use_container_width=True)
 
 # Random Winner Draw
@@ -155,8 +181,8 @@ else:
 st.header("Statistics 📈")
 
 # Total unique users
-unique_users = len(visits_df["User ID"].unique())
-total_visits = len(visits_df)
+unique_users = len(visits_df["User ID"].unique()) if not visits_df.empty else 0
+total_visits = len(visits_df) if not visits_df.empty else 0
 
 col1, col2 = st.columns(2)
 with col1:
