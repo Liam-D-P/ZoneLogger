@@ -38,6 +38,10 @@ if not cookies.ready():
 # Initialize session state
 if 'show_email_override' not in st.session_state:
     st.session_state.show_email_override = False
+if 'last_scanned_code' not in st.session_state:
+    st.session_state.last_scanned_code = None
+if 'processing_scan' not in st.session_state:
+    st.session_state.processing_scan = False
 
 # QR Code Functions
 def generate_qr_code(data):
@@ -59,14 +63,37 @@ def show_qr_scanner():
     # Initialize the QR scanner
     qr_code = qrcode_scanner(key='scanner')
     
-    if qr_code:  # If a QR code is scanned
+    # Only process if we have a new QR code and aren't already processing
+    if (qr_code and 
+        qr_code != st.session_state.last_scanned_code and 
+        not st.session_state.processing_scan):
+        
+        st.session_state.processing_scan = True
+        
         if qr_code in zone_mapping:
-            log_visit(st.session_state.user_email, qr_code)
-            st.success(f"Successfully logged visit to {zone_mapping[qr_code]}! 🎉")
-            time.sleep(2)  # Give time to see the success message
-            st.rerun()
+            # Check if this zone was visited in the last minute
+            conn = get_db_connection()
+            cursor = conn.execute('''
+                SELECT COUNT(*) FROM visits 
+                WHERE user_id = ? AND zone = ? 
+                AND datetime(timestamp) > datetime('now', '-1 minute')
+            ''', (st.session_state.user_email, qr_code))
+            recent_visits = cursor.fetchone()[0]
+            
+            if recent_visits == 0:
+                log_visit(st.session_state.user_email, qr_code)
+                st.success(f"Successfully logged visit to {zone_mapping[qr_code]}! 🎉")
+            else:
+                st.warning("You've already logged this zone recently. Please wait a moment before scanning again.")
         else:
             st.error("Invalid QR code! Please try again.")
+        
+        # Update last scanned code
+        st.session_state.last_scanned_code = qr_code
+        
+        # Reset processing flag after a short delay
+        time.sleep(1)
+        st.session_state.processing_scan = False
 
 def show_test_qr_codes():
     """Show test QR codes for each zone"""
