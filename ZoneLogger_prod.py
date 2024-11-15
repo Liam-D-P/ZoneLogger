@@ -380,14 +380,18 @@ def show_zone_traffic():
 
 # Add this helper function near the other helper functions
 def get_name_from_email(email):
-    """Extract name from email address"""
+    """Extract first name from email address in SURNAME.FIRSTNAME format"""
     if not email:
         return ""
-    # Get the part before @ and replace dots/underscores with spaces
-    name = email.split('@')[0].replace('.', ' ').replace('_', ' ')
-    # Capitalize each word
-    name = ' '.join(word.capitalize() for word in name.split())
-    return name
+    # Get the part before @ and split by dot
+    name_parts = email.split('@')[0].split('.')
+    # If we have both surname and firstname (proper format)
+    if len(name_parts) >= 2:
+        firstname = name_parts[1]  # Take the second part (firstname)
+    else:
+        firstname = name_parts[0]  # Fallback to whatever we have
+    # Capitalize first letter
+    return firstname.capitalize()
 
 # Welcome header and instructions
 st.title("Welcome to the Zone Explorer! 🎯")
