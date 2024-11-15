@@ -219,13 +219,12 @@ def get_remaining_zones(user_id):
 def get_user_stats(user_id):
     """Get user statistics"""
     conn = get_db_connection()
-    data = conn.table("visits")\
-        .select("zone")\
-        .eq("user_id", user_id)\
-        .execute()
+    # Change from using query to using table().select()
+    result = conn.table("visits").select("zone").eq("user_id", user_id).execute()
     
     visits_by_zone = defaultdict(int)
-    for row in data.data:
+    # Access the data through result.data
+    for row in result.data:
         visits_by_zone[row['zone']] += 1
     
     total_visits = sum(visits_by_zone.values())
