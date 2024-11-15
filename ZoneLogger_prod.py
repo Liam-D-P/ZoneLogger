@@ -278,13 +278,16 @@ def show_zone_traffic():
     conn = get_db_connection()
     data = conn.table("visits")\
         .select("zone")\
-        .gte("timestamp", "now() - interval '30 minutes'")\
+        .gte("timestamp", f"now() - interval '30 minutes'")\
         .execute()
     
     # Count visits per zone
     traffic = defaultdict(int)
     for row in data.data:
         traffic[row['zone']] += 1
+    
+    st.markdown("### 👥 Live Zone Activity")
+    st.info("See which zones are currently popular with all explorers")
     
     # Find the most visited zone
     if traffic:
