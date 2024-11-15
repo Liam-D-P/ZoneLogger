@@ -4,8 +4,13 @@
 import streamlit as st
 import os
 
-# Set page to wide mode
-st.set_page_config(layout="wide")
+# Set page to wide mode and other configurations
+st.set_page_config(
+    page_title="Zone Explorer",
+    page_icon="🎯",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 
 # Import all required libraries
 import sqlite3
@@ -320,7 +325,7 @@ def logout_user():
 # Add the show_zone_traffic function
 def show_zone_traffic():
     st.markdown("### 👥 Live Zone Activity")
-    st.info("See which zones are currently popular with all explorers")
+    st.info("See which zones are currently popular with other explorers")
     
     # Get visit counts for last 30 minutes
     conn = get_db_connection()
@@ -381,19 +386,19 @@ with st.expander("Need Help? 🤔"):
     ### Common Questions:
     
     **Q: My zone visit didn't register?**
-    A: Try refreshing the page and visit the zone again
+    A: Try refreshing the page. If that fails, try visiting the zone again.
     
     **Q: Can I visit zones in any order?**
     A: Yes! Visit them in whatever order you prefer
     
     **Q: How do I know if I've won?**
-    A: Prize draw winners will be notified by email
+    A: Prize draw winners will be notified by email after the event
     
     **Q: How many zones do I need to visit?**
-    A: Visit all 6 zones to be eligible for the prize draw
+    A: Visit all X zones to be eligible for the prize draw
     
     **Q: I need assistance!**
-    A: Find a volunteer in a blue t-shirt - they'll be happy to help!
+    A: Find a volunteer from the Qaulity Engineering CoE stand - they will be happy to help!
     """)
 
 st.markdown("""
@@ -488,11 +493,10 @@ if user_email:
     
     st.markdown("---")  # Divider
     
-    # 3. Progress Stats
+    # 3. Progress Stats (remove "Your Progress" heading)
     stats = get_user_stats(user_email)
     rank = get_user_rank(user_email)
     
-    st.markdown("### Your Progress")
     col1, col2, col3 = st.columns(3)
     with col1:
         st.metric("Rank", rank)
@@ -505,9 +509,9 @@ if user_email:
     st.markdown("")  # Add space
     st.progress(stats['completion_percentage'] / 100, text=f"Journey Progress: {stats['completion_percentage']:.1f}%")
     
-    # 5. Progress Map
+    # 5. Progress Map (change heading)
     st.markdown("")  # Add space
-    st.markdown("### Your Progress Map")
+    st.markdown("### Your Progress")  # Changed from "Your Progress Map"
     visualize_zones(user_email)
     
     st.markdown("---")  # Divider
