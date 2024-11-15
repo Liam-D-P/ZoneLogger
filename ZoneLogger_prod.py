@@ -128,6 +128,10 @@ def show_zone_interface():
                 if recent_visits == 0:
                     log_visit(st.session_state.user_email, qr_code)
                     st.success(f"Successfully logged visit to {zone_mapping[qr_code]}! 🎉")
+                    time.sleep(1)  # Give time to see the success message
+                    st.session_state.last_scanned_code = qr_code
+                    st.session_state.processing_scan = False
+                    st.rerun()  # Rerun to update the UI
                 else:
                     st.warning("You've already logged this zone recently. Please wait a moment before scanning again.")
             else:
