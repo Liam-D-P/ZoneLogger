@@ -2,6 +2,7 @@
 # It uses an SQLite database to store visit data and a cookie manager to handle user sessions securely.
 
 import streamlit as st
+import os
 
 # Set page to wide mode
 st.set_page_config(layout="wide")
@@ -89,9 +90,60 @@ def show_quick_buttons():
 
 def show_zone_interface():
     """Show the zone interface with tabs for different methods"""
-    tab1, tab2, tab3 = st.tabs(["📱 Scan QR Code", "🧪 Test QR Codes", "🔘 Quick Buttons"])
+    # Check if we're in testing mode
+    testing_mode = os.getenv('TESTING_MODE', 'false').lower() == 'true'
     
-    with tab1:
+    if testing_mode:
+        # Show all tabs in testing mode
+        tab1, tab2, tab3 = st.tabs(["📱 Scan QR Code", "🧪 Test QR Codes", "🔘 Quick Buttons"])
+        
+        with tab1:
+            st.markdown("### 📱 Scan Zone QR Code")
+            st.info("Point your camera at a zone QR code to log your visit")
+            
+            # Initialize the QR scanner
+            qr_code = qrcode_scanner(key='scanner')
+            
+            # Only process if we have a new QR code and aren't already processing
+            if (qr_code and 
+                qr_code != st.session_state.last_scanned_code and 
+                not st.session_state.processing_scan):
+                
+                st.session_state.processing_scan = True
+                
+                if qr_code in zone_mapping:
+                    # Check if this zone was visited in the last minute
+                    conn = get_db_connection()
+                    cursor = conn.execute('''
+                        SELECT COUNT(*) FROM visits 
+                        WHERE user_id = ? AND zone = ? 
+                        AND datetime(timestamp) > datetime('now', '-1 minute')
+                    ''', (st.session_state.user_email, qr_code))
+                    recent_visits = cursor.fetchone()[0]
+                    
+                    if recent_visits == 0:
+                        log_visit(st.session_state.user_email, qr_code)
+                        st.success(f"Successfully logged visit to {zone_mapping[qr_code]}! 🎉")
+                    else:
+                        st.warning("You've already logged this zone recently. Please wait a moment before scanning again.")
+                else:
+                    st.error("Invalid QR code! Please try again.")
+                
+                # Update last scanned code
+                st.session_state.last_scanned_code = qr_code
+                
+                # Reset processing flag after a short delay
+                time.sleep(1)
+                st.session_state.processing_scan = False
+        
+        with tab2:
+            show_test_qr_codes()
+        
+        with tab3:
+            show_quick_buttons()
+    
+    else:
+        # Only show QR scanner in production mode
         st.markdown("### 📱 Scan Zone QR Code")
         st.info("Point your camera at a zone QR code to log your visit")
         
@@ -129,12 +181,6 @@ def show_zone_interface():
             # Reset processing flag after a short delay
             time.sleep(1)
             st.session_state.processing_scan = False
-    
-    with tab2:
-        show_test_qr_codes()
-    
-    with tab3:
-        show_quick_buttons()
 
 # Initialize SQLite database
 @st.cache_resource
