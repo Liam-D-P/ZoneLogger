@@ -378,6 +378,17 @@ def show_zone_traffic():
         
         current_col.write(f"{zone_name}: {visits} visits in last 30 min")
 
+# Add this helper function near the other helper functions
+def get_name_from_email(email):
+    """Extract name from email address"""
+    if not email:
+        return ""
+    # Get the part before @ and replace dots/underscores with spaces
+    name = email.split('@')[0].replace('.', ' ').replace('_', ' ')
+    # Capitalize each word
+    name = ' '.join(word.capitalize() for word in name.split())
+    return name
+
 # Welcome header and instructions
 st.title("Welcome to the Zone Explorer! 🎯")
 
@@ -449,7 +460,8 @@ if 'user_email' not in cookies and not st.session_state.show_email_override:
 else:
     user_email = cookies['user_email']
     st.session_state.user_email = user_email
-    st.markdown(f"### 👋 Welcome back!")
+    user_name = get_name_from_email(user_email)
+    st.markdown(f"### 👋 Hello {user_name}!")
 
 if user_email:
     # Add traffic display before or after zone buttons
