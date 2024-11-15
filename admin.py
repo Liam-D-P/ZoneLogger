@@ -57,9 +57,9 @@ def get_visits(start_date, end_date):
     """Get visits between specified dates"""
     conn = get_db_connection()
     data = conn.table("visits")\
-        .select("*")\
-        .gte("timestamp", start_date)\
-        .lte("timestamp", end_date)\
+        .select("user_id, zone, timestamp")\
+        .gte("timestamp", start_date.isoformat())\
+        .lte("timestamp", end_date.isoformat())\
         .execute()
     return data.data
 
@@ -77,20 +77,29 @@ if st.button("Draw Random Winner! 🎲"):
     conn = get_db_connection()
     
     # Get all eligible entries
-    prize_draw_entries = pd.read_sql('''
-        SELECT DISTINCT prize_draw.user_id, prize_draw.email,
-        COUNT(DISTINCT visits.zone) as zones_visited
-        FROM prize_draw 
-        JOIN visits ON prize_draw.user_id = visits.user_id
-        GROUP BY prize_draw.user_id
-        HAVING zones_visited = 6
-    ''', conn)
+    prize_entries = conn.table("prize_draw")\
+        .select("user_id, email")\
+        .execute()
     
-    if len(prize_draw_entries) == 0:
+    # Convert to DataFrame
+    prize_draw_entries = pd.DataFrame(prize_entries.data)
+    
+    # Get visit counts for each user
+    visits = conn.table("visits")\
+        .select("user_id, zone")\
+        .execute()
+    
+    visits_df = pd.DataFrame(visits.data)
+    user_completion = visits_df.groupby('user_id')['zone'].nunique()
+    eligible_users = user_completion[user_completion == 6].index
+    
+    eligible_entries = prize_draw_entries[prize_draw_entries['user_id'].isin(eligible_users)]
+    
+    if len(eligible_entries) == 0:
         st.warning("No eligible entries found! Participants must visit all zones to be eligible.")
     else:
         # Draw single winner
-        winner = prize_draw_entries.sample(n=1)
+        winner = eligible_entries.sample(n=1)
         st.success("🎉 Winner drawn!")
         st.markdown(f"### 🏆 Winner: {winner['email'].iloc[0]}")
 
