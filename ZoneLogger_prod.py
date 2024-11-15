@@ -309,12 +309,12 @@ def logout_user():
         del st.session_state[key]
     # Don't rerun here - let the button handler do it
 
-# Add the show_zone_traffic function
-def show_zone_traffic():
-    """Show live zone activity"""
+# Add this function near the other helper functions
+@st.cache_data(ttl=30)  # Cache data for 30 seconds
+def get_zone_traffic():
+    """Get live zone activity data with 30-second cache"""
     conn = get_db_connection()
     
-    # Use proper timestamp syntax for Supabase
     from datetime import datetime, timedelta
     thirty_mins_ago = (datetime.now() - timedelta(minutes=30)).isoformat()
     
@@ -328,8 +328,16 @@ def show_zone_traffic():
     for row in data.data:
         traffic[row['zone']] += 1
     
+    return traffic
+
+# Update the show_zone_traffic function to use the cached data
+def show_zone_traffic():
+    """Show live zone activity"""
     st.markdown("### 👥 Live Zone Activity")
-    st.info("See which zones are currently popular with all explorers")
+    st.info("See which zones are currently popular with all explorers (updates every 30 seconds)")
+    
+    # Use cached traffic data
+    traffic = get_zone_traffic()
     
     # Find the most visited zone
     if traffic:
