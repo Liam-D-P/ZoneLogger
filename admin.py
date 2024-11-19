@@ -103,7 +103,7 @@ if st.button("Draw Random Winner! 🎲"):
     
     visits_df = pd.DataFrame(visits.data)
     user_completion = visits_df.groupby('user_id')['zone'].nunique()
-    eligible_users = user_completion[user_completion == 6].index
+    eligible_users = user_completion[user_completion == len(zone_mapping)].index
     
     eligible_entries = prize_draw_entries[prize_draw_entries['user_id'].isin(eligible_users)]
     
