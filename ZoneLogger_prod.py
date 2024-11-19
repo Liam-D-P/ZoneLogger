@@ -546,8 +546,13 @@ if user_email:
         st.markdown("### 🎉 Congratulations!")
         
         conn = get_db_connection()
-        cursor = conn.execute('SELECT * FROM prize_draw WHERE user_id = ?', (user_email,))
-        already_entered = cursor.fetchone() is not None
+        # Change from using execute() to using table().select()
+        result = conn.table("prize_draw")\
+            .select("*")\
+            .eq("user_id", user_email)\
+            .execute()
+        
+        already_entered = len(result.data) > 0
         
         if already_entered:
             st.success("You've completed all zones and are entered in the prize draw! 🎁")
@@ -556,8 +561,14 @@ if user_email:
             col1, col2, col3 = st.columns([1,2,1])
             with col2:
                 if st.button("Enter Prize Draw! 🎁", type="primary", use_container_width=True):
-                    conn.execute('INSERT INTO prize_draw (user_id, email) VALUES (?, ?)', (user_email, user_email))
-                    conn.commit()
+                    # Change from execute() to table().insert()
+                    conn.table("prize_draw")\
+                        .insert({
+                            "user_id": user_email,
+                            "email": user_email
+                        })\
+                        .execute()
+                    
                     st.balloons()
                     st.success("🎊 Fantastic! You're now entered in the prize draw!")
                     st.info("Good luck! Winners will be notified by email 🍀")
