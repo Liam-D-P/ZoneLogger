@@ -308,7 +308,7 @@ def get_zone_traffic():
     conn = get_db_connection()
     
     # Get today's date in ISO format
-    today = datetime.now().date().isoformat()
+    today = datetime.datetime.now().date().isoformat()
     start_of_day = f"{today}T00:00:00"
     end_of_day = f"{today}T23:59:59"
     
