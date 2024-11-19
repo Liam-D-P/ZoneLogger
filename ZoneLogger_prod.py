@@ -28,18 +28,18 @@ import base64
 
 # Zones mapping
 zone_mapping = {
-    "zone123abc": "Zone 1",
-    "zone456def": "Zone 2",
-    "zone789ghi": "Zone 3",
-    "zone012jkl": "Zone 4",
-    "zone345mno": "Zone 5",
-    "zone678pqr": "Zone 6",
-    "zone901stu": "Zone 7",
-    "zone234vwx": "Zone 8",
-    "zone567yza": "Zone 9",
-    "zone890bcd": "Zone 10",
-    "zone321efg": "Zone 11",
-    "zone654hij": "Zone 12"
+    "zone123abc": "Engineering Misson",
+    "zone456def": "Developer Control Plane",
+    "zone789ghi": "Harness & Backstage",
+    "zone012jkl": "DevOps",
+    "zone345mno": "Quality Engineering",
+    "zone678pqr": "Engineering Experience",
+    "zone901stu": "Whack a Mole Challenge",
+    "zone234vwx": "Cloud Mission",
+    "zone567yza": "How Cloud Can Help",
+    "zone890bcd": "Cloud Adoption",
+    "zone321efg": "Voice of a Customer",
+    "zone654hij": "Chat Bot Demo"
 }
 
 # Initialize cookies manager with a password
