@@ -128,7 +128,8 @@ def show_zone_interface():
     if testing_mode:
         tab1, tab2, tab3, tab4 = st.tabs(["📱 Scan QR Code", "✍️ Manual Check-in", "🧪 Test QR Codes", "🔘 Quick Buttons"])
     else:
-        tab1, tab2 = st.tabs(["📱 Scan QR Code", "✍️ Manual Check-in"])
+        # In production, only show QR scanner
+        tab1, = st.tabs(["📱 Scan QR Code"])
     
     with tab1:
         st.markdown("### 📱 Scan Zone QR Code")
@@ -156,10 +157,9 @@ def show_zone_interface():
             # Reset processing flag if we didn't rerun
             st.session_state.processing_scan = False
     
-    with tab2:
-        show_manual_checkin()
-    
-    if testing_mode:
+    if testing_mode:  # Only show these tabs in testing mode
+        with tab2:
+            show_manual_checkin()
         with tab3:
             show_test_qr_codes()
         with tab4:
@@ -461,7 +461,12 @@ if user_email:
     st.progress(stats['completion_percentage'] / 100, text=f"Journey Progress: {stats['completion_percentage']:.1f}%")
     
     # 4. Main Interface with Tabs
-    tab1, tab2 = st.tabs(["📱 Scan QR Code", "✍️ Manual Check-in"])
+    testing_mode = os.getenv('TESTING_MODE', 'false').lower() == 'true'
+    
+    if testing_mode:
+        tab1, tab2 = st.tabs(["📱 Scan QR Code", "✍️ Manual Check-in"])
+    else:
+        tab1, = st.tabs(["📱 Scan QR Code"])
     
     with tab1:
         st.markdown("### 📱 Scan Zone QR Code")
@@ -489,22 +494,23 @@ if user_email:
             # Reset processing flag if we didn't rerun
             st.session_state.processing_scan = False
     
-    with tab2:
-        st.markdown("### ✍️ Manual Zone Check-in")
-        st.info("If QR scanning isn't working, you can manually check in to a zone here")
-        
-        # Create columns for zone buttons
-        cols = st.columns(3)
-        for i, (zone_id, zone_name) in enumerate(zone_mapping.items()):
-            col_idx = i % 3
-            with cols[col_idx]:
-                if st.button(f"Check in to {zone_name}", key=f"manual_{zone_id}", use_container_width=True):
-                    if log_visit(st.session_state.user_email, zone_id):
-                        st.success(f"Successfully checked in to {zone_name}! 🎉")
-                    else:
-                        st.warning("Please wait a minute before checking in to this zone again.")
-                    time.sleep(1)
-                    st.rerun()
+    if testing_mode:  # Only show manual check-in in testing mode
+        with tab2:
+            st.markdown("### ✍️ Manual Zone Check-in")
+            st.info("If QR scanning isn't working, you can manually check in to a zone here")
+            
+            # Create columns for zone buttons
+            cols = st.columns(3)
+            for i, (zone_id, zone_name) in enumerate(zone_mapping.items()):
+                col_idx = i % 3
+                with cols[col_idx]:
+                    if st.button(f"Check in to {zone_name}", key=f"manual_{zone_id}", use_container_width=True):
+                        if log_visit(st.session_state.user_email, zone_id):
+                            st.success(f"Successfully checked in to {zone_name}! 🎉")
+                        else:
+                            st.warning("Please wait a minute before checking in to this zone again.")
+                        time.sleep(1)
+                        st.rerun()
     
     # 5. Progress Map
     st.markdown("### Your Progress")
