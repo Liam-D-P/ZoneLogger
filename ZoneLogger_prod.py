@@ -304,15 +304,19 @@ def logout_user():
 # Add this function near the other helper functions
 @st.cache_data(ttl=30)  # Cache data for 30 seconds
 def get_zone_traffic():
-    """Get live zone activity data with 30-second cache"""
+    """Get live zone activity data for the current day"""
     conn = get_db_connection()
     
-    from datetime import datetime, timedelta
-    five_mins_ago = (datetime.now() - timedelta(minutes=5)).isoformat()
+    # Get today's date in ISO format
+    today = datetime.now().date().isoformat()
+    start_of_day = f"{today}T00:00:00"
+    end_of_day = f"{today}T23:59:59"
     
+    # Query visits for the entire day
     data = conn.table("visits")\
         .select("zone")\
-        .gte("timestamp", five_mins_ago)\
+        .gte("timestamp", start_of_day)\
+        .lte("timestamp", end_of_day)\
         .execute()
     
     # Count visits per zone
@@ -325,8 +329,8 @@ def get_zone_traffic():
 # Update the show_zone_traffic function to use the cached data
 def show_zone_traffic():
     """Show live zone activity"""
-    st.markdown("### 👥 Live Zone Activity")
-    st.info("See which zones are currently popular!")
+    st.markdown("### 👥 Today's Zone Activity")
+    st.info("See which zones are popular today!")
     
     # Use cached traffic data
     traffic = get_zone_traffic()
@@ -335,7 +339,7 @@ def show_zone_traffic():
     if traffic:
         most_visited_zone_id = max(traffic.items(), key=lambda x: x[1])[0]
         most_visited_count = traffic[most_visited_zone_id]
-        st.write(f"🔥 {zone_mapping[most_visited_zone_id]} is currently the hottest zone!")
+        st.write(f"🔥 {zone_mapping[most_visited_zone_id]} is today's most visited zone!")
     
     # Display zone traffic
     col1, col2 = st.columns(2)
@@ -347,9 +351,9 @@ def show_zone_traffic():
         visits = traffic.get(zone_id, 0)
         
         if traffic and zone_id == most_visited_zone_id:
-            current_col.write(f"{zone_name} 🔥: {visits} explorers")
+            current_col.write(f"{zone_name} 🔥: {visits} explorers today")
         else:
-            current_col.write(f"{zone_name}: {visits} explorers")
+            current_col.write(f"{zone_name}: {visits} explorers today")
 
 # Add this helper function near the other helper functions
 def get_name_from_email(email):
