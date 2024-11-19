@@ -139,35 +139,19 @@ def show_zone_interface():
         
         # QR code processing logic...
         if qr_code and not st.session_state.processing_scan:
-            # Remove the last_scanned_code check since we want to process every scan
-            
             st.session_state.processing_scan = True
             
             if qr_code in zone_mapping:
-                conn = get_db_connection()
-                from datetime import datetime, timedelta
-                one_min_ago = (datetime.now() - timedelta(minutes=1)).isoformat()
-                
-                result = conn.table("visits")\
-                    .select("*")\
-                    .eq("user_id", st.session_state.user_email)\
-                    .eq("zone", qr_code)\
-                    .gte("timestamp", one_min_ago)\
-                    .execute()
-                
-                recent_visits = len(result.data)
-                
-                if recent_visits == 0:
-                    if log_visit(st.session_state.user_email, qr_code):
-                        st.success(f"Successfully logged visit to {zone_mapping[qr_code]}! 🎉")
-                        # Reset processing flag before rerun
-                        st.session_state.processing_scan = False
-                        time.sleep(1)  # Give time to see the success message
-                        st.rerun()  # Refresh to update the UI
-                else:
-                    st.warning("You've already logged this zone recently. Please wait a moment before scanning again.")
+                if log_visit(st.session_state.user_email, qr_code):
+                    st.success(f"Successfully logged visit to {zone_mapping[qr_code]}! 🎉")
+                    st.session_state.processing_scan = False
+                    time.sleep(1)  # Give time to see the success message
+                    st.rerun()  # Refresh to update the UI
             else:
                 st.error("Invalid QR code! Please try again.")
+                st.session_state.processing_scan = False
+                time.sleep(1)
+                st.rerun()
             
             # Reset processing flag if we didn't rerun
             st.session_state.processing_scan = False
@@ -484,35 +468,19 @@ if user_email:
         
         # QR code processing logic...
         if qr_code and not st.session_state.processing_scan:
-            # Remove the last_scanned_code check since we want to process every scan
-            
             st.session_state.processing_scan = True
             
             if qr_code in zone_mapping:
-                conn = get_db_connection()
-                from datetime import datetime, timedelta
-                one_min_ago = (datetime.now() - timedelta(minutes=1)).isoformat()
-                
-                result = conn.table("visits")\
-                    .select("*")\
-                    .eq("user_id", st.session_state.user_email)\
-                    .eq("zone", qr_code)\
-                    .gte("timestamp", one_min_ago)\
-                    .execute()
-                
-                recent_visits = len(result.data)
-                
-                if recent_visits == 0:
-                    if log_visit(st.session_state.user_email, qr_code):
-                        st.success(f"Successfully logged visit to {zone_mapping[qr_code]}! 🎉")
-                        # Reset processing flag before rerun
-                        st.session_state.processing_scan = False
-                        time.sleep(1)  # Give time to see the success message
-                        st.rerun()  # Refresh to update the UI
-                else:
-                    st.warning("You've already logged this zone recently. Please wait a moment before scanning again.")
+                if log_visit(st.session_state.user_email, qr_code):
+                    st.success(f"Successfully logged visit to {zone_mapping[qr_code]}! 🎉")
+                    st.session_state.processing_scan = False
+                    time.sleep(1)  # Give time to see the success message
+                    st.rerun()  # Refresh to update the UI
             else:
                 st.error("Invalid QR code! Please try again.")
+                st.session_state.processing_scan = False
+                time.sleep(1)
+                st.rerun()
             
             # Reset processing flag if we didn't rerun
             st.session_state.processing_scan = False
