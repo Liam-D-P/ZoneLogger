@@ -138,9 +138,8 @@ def show_zone_interface():
         qr_code = qrcode_scanner(key='scanner')
         
         # QR code processing logic...
-        if (qr_code and 
-            qr_code != st.session_state.last_scanned_code and 
-            not st.session_state.processing_scan):
+        if qr_code and not st.session_state.processing_scan:
+            # Remove the last_scanned_code check since we want to process every scan
             
             st.session_state.processing_scan = True
             
@@ -159,17 +158,18 @@ def show_zone_interface():
                 recent_visits = len(result.data)
                 
                 if recent_visits == 0:
-                    log_visit(st.session_state.user_email, qr_code)
-                    st.success(f"Successfully logged visit to {zone_mapping[qr_code]}! 🎉")
-                    time.sleep(1)  # Give time to see the success message
-                    st.rerun()  # Refresh to update the UI
+                    if log_visit(st.session_state.user_email, qr_code):
+                        st.success(f"Successfully logged visit to {zone_mapping[qr_code]}! 🎉")
+                        # Reset processing flag before rerun
+                        st.session_state.processing_scan = False
+                        time.sleep(1)  # Give time to see the success message
+                        st.rerun()  # Refresh to update the UI
                 else:
                     st.warning("You've already logged this zone recently. Please wait a moment before scanning again.")
             else:
                 st.error("Invalid QR code! Please try again.")
             
-            st.session_state.last_scanned_code = qr_code
-            time.sleep(1)
+            # Reset processing flag if we didn't rerun
             st.session_state.processing_scan = False
     
     with tab2:
@@ -478,12 +478,13 @@ if user_email:
     with tab1:
         st.markdown("### 📱 Scan Zone QR Code")
         st.info("Point your camera at a zone QR code to log your visit")
+        
+        # Initialize the QR scanner
         qr_code = qrcode_scanner(key='scanner')
         
         # QR code processing logic...
-        if (qr_code and 
-            qr_code != st.session_state.last_scanned_code and 
-            not st.session_state.processing_scan):
+        if qr_code and not st.session_state.processing_scan:
+            # Remove the last_scanned_code check since we want to process every scan
             
             st.session_state.processing_scan = True
             
@@ -502,17 +503,18 @@ if user_email:
                 recent_visits = len(result.data)
                 
                 if recent_visits == 0:
-                    log_visit(st.session_state.user_email, qr_code)
-                    st.success(f"Successfully logged visit to {zone_mapping[qr_code]}! 🎉")
-                    time.sleep(1)  # Give time to see the success message
-                    st.rerun()  # Refresh to update the UI
+                    if log_visit(st.session_state.user_email, qr_code):
+                        st.success(f"Successfully logged visit to {zone_mapping[qr_code]}! 🎉")
+                        # Reset processing flag before rerun
+                        st.session_state.processing_scan = False
+                        time.sleep(1)  # Give time to see the success message
+                        st.rerun()  # Refresh to update the UI
                 else:
                     st.warning("You've already logged this zone recently. Please wait a moment before scanning again.")
             else:
                 st.error("Invalid QR code! Please try again.")
             
-            st.session_state.last_scanned_code = qr_code
-            time.sleep(1)
+            # Reset processing flag if we didn't rerun
             st.session_state.processing_scan = False
     
     with tab2:
