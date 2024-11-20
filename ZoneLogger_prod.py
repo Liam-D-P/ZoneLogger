@@ -7,8 +7,7 @@ from st_supabase_connection import SupabaseConnection
 
 # Set page to wide mode and other configurations
 st.set_page_config(
-    page_title="Zone Explorer",
-    page_icon="🎯",
+    page_title="Reboot Zone Explorer",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -368,7 +367,7 @@ def get_name_from_email(email):
     return firstname.capitalize()
 
 # Welcome header and instructions
-st.title("Welcome to the Zone Explorer! 🎯")
+st.title("Welcome to the Reboot 2024 Engineering & Cloud Zone Explorer!")
 
 # Add Help section as expander
 with st.expander("Need Help? 🤔"):
