@@ -1,97 +1,128 @@
-# Zone Explorer
+# Zone Explorer 🎯
 
-A Streamlit-based web application for tracking user visits to different zones and managing a prize draw system.
+Zone Explorer is an interactive web application built with Streamlit that gamifies the exploration of different zones or areas within an event or space. Users scan QR codes at each zone to track their progress and compete for prizes.
 
-## 🎯 Overview
+## 🌟 Features
 
-Zone Explorer allows users to:
-- Register with their email
-- Track visits to 6 different zones
-- View their progress and achievements
-- Enter a prize draw upon completing all zones
-- Monitor recent zone activity
+### For Users
+- **QR Code Scanning**: Easily log visits by scanning zone-specific QR codes
+- **Progress Tracking**: Visual progress indicators and completion percentage
+- **Rank System**: Dynamic ranks based on zones visited
+  - Novice Explorer 🌱
+  - Zone Seeker 🔍
+  - Zone Adventurer 🌟
+  - Zone Master 💫
+  - Zone Expert 👑
+  - Zone Champion 🏆
+- **Real-time Zone Traffic**: See which zones are most popular
+- **Prize Draw**: Automatic entry upon visiting all zones
 
-Administrators can:
-- View all prize draw entries
-- Draw random winners
-- View filtered visit logs
-- Monitor usage statistics
+### For Administrators
+- **Secure Admin Dashboard**: Password-protected administrative interface
+- **Data Visualization**: Track zone visits and user engagement
+- **Prize Draw Management**: Automated winner selection system
+- **Visit Analytics**: Filter and analyse visit data by date range
+- **Real-time Statistics**: Monitor unique users and total visits
 
-## 🚀 Getting Started
+## 🛠️ Technical Setup
 
 ### Prerequisites
-- Python 3.7+
-- pip (Python package installer)
-
-### Required Packages
-- streamlit
-- pandas
-- streamlit-cookies-manager
-- sqlite3 (included with Python)
+- Python 3.8+
+- Supabase account and project
+- Streamlit account (for deployment)
 
 ### Installation
 
-1. Clone the repository
-2. Create a new virtual environment
-    `python -m venv zone_explorer_env`
-3. Navigate to new virtual environment
-    `cd zone_explorer_env/Scripts`
-4. Activate the virtual environment
-    `.\activate`
-5. Install the required packages
-    `pip install -r requirements.txt`
+1. Clone the repository:
 
-### Running the Application
+```bash
+git clone [repository-url]
+cd zone-explorer
+```
 
-1. Start the main application:
-    `streamlit run ZoneLogger.py`
-2. Start the admin application:
-    `streamlit run admin.py --server.port 8502`
+2. Install dependencies:
 
-### Accessing the Applications
+```bash
+pip install -r requirements.txt
+```
 
-1. Main application: http://localhost:8501
-2. Admin application: http://localhost:8502
+3. Configure environment variables:
+Create a `.env` file with:
 
-## 📱 Features
+```bash
+TESTING_MODE=false
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_key
+```
 
-### User Interface
-- Email-based user registration
-- Real-time zone visit tracking
-- Progress visualization
-- Achievement ranks
-- Prize draw entry system
-- Help section with FAQs
+4. Set up Streamlit secrets:
+Create `.streamlit/secrets.toml`:
 
-### Admin Dashboard
-- View all prize draw entries
-- Random winner selection
-- Date-filtered visit logs
-- Usage statistics and visualizations
-- Zone activity monitoring
+```toml
+[supabase]
+url = "your_supabase_url"
+key = "your_supabase_key"
+```
 
-## 🔧 Testing Tools
+### Database Setup
 
-The application includes testing features:
-- Email override for testing different users
-- Quick zone completion buttons
-- Progress reset functionality
+The application requires the following Supabase tables:
 
-## 📊 Database
+#### visits
+- user_id (text)
+- zone (text)
+- timestamp (timestamptz)
 
-Uses SQLite with two main tables:
-- `visits`: Tracks zone visits with timestamps
-- `prize_draw`: Stores prize draw entries
+#### prize_draw
+- user_id (text)
+- email (text)
 
-## 🔒 Security
+## 🚀 Usage
 
-- User sessions managed via encrypted cookies
-- Admin interface on separate port
-- Database operations use parameterized queries
+### Running Locally
 
-## 📝 Notes
+```bash
+streamlit run ZoneLogger_prod.py
+```
 
-- The application uses a wide layout for better visualization
-- Zone visits are tracked with timestamps
-- Prize draw entries are limited to one per user
-- Users must visit all zones to be eligible for the prize draw
+### Accessing Admin Dashboard
+
+```bash
+streamlit run admin.py
+```
+
+## 🔧 Configuration
+
+### Zone Management
+Zones are configured in `ZoneLogger_prod.py` using the `zone_mapping` dictionary:
+
+```python
+zone_mapping = {
+    "zone123abc": "Engineering Mission",
+    "zone456def": "Developer Control Plane",
+    # ... add more zones as needed
+}
+```
+
+### Testing Mode
+Enable testing mode by setting `TESTING_MODE=true` in your environment variables to access:
+- Test QR codes
+- Email override
+- Progress reset
+- Quick completion buttons
+
+## 🔒 Security Features
+
+- Encrypted cookie management for user sessions
+- Password-protected admin interface
+- Rate limiting on zone check-ins (1-minute cooldown)
+- Secure database connections via Supabase
+
+## 📱 Mobile Compatibility
+
+The application is fully responsive and optimized for mobile devices, making it ideal for on-the-go zone exploration.
+
+## 🙏 Acknowledgments
+
+- Built with [Streamlit](https://streamlit.io/)
+- Database powered by [Supabase](https://supabase.io/)

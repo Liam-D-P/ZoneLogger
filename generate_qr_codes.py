@@ -10,12 +10,13 @@ zone_mapping = {
     "zone456def": "Developer Control Plane",
     "zone789ghi": "Harness & Backstage",
     "zone012jkl": "DevOps",
-    "zone345mno": "Quality Engineering",
+    "zone345mno": "Quality Engineering - Reboot Challenge",
     "zone678pqr": "Engineering Experience",
     "zone901stu": "Whack a Mole Challenge",
     "zone234vwx": "Cloud Mission",
     "zone567yza": "How Cloud Can Help",
     "zone890bcd": "Cloud Adoption",
+    "zone846fgh": "Cloud Enable",
     "zone321efg": "Voice of a Customer",
     "zone654hij": "Chat Bot Demo"
 }
