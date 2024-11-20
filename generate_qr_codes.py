@@ -71,8 +71,8 @@ def generate_qr_code(data):
     return qr_image
 
 def create_combined_image():
-    # Calculate grid size (4x3 for 12 zones)
-    rows, cols = 3, 4
+    # Calculate grid size (4x4 to accommodate 13 zones with room for growth)
+    rows, cols = 4, 4
     # Size of each QR code plus some padding
     qr_size = 150
     padding = 20
