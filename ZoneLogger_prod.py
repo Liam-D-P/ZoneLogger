@@ -370,7 +370,7 @@ def get_name_from_email(email):
 st.title("Welcome to the Reboot 2024 Engineering & Cloud Zone Explorer!")
 
 # Add Help section as expander
-with st.expander("Need Helps? 🤔"):
+with st.expander("Need Help? 🤔"):
     st.markdown("""
     ### Common Questions:
     
@@ -384,7 +384,7 @@ with st.expander("Need Helps? 🤔"):
     A: Prize draw winners will be notified by email after the event
     
     **Q: How many zones do I need to visit?**
-    A: Visit all X zones to be eligible for the prize draw
+    A: Visit all 12 zones to be eligible for the prize draw
     
     **Q: I need assistance!**
     A: Find a volunteer from the Quality Engineering CoE stand - they will be happy to help!
