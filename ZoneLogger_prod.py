@@ -370,7 +370,7 @@ def get_name_from_email(email):
 st.title("Welcome to the Reboot 2024 Engineering & Cloud Zone Explorer!")
 
 # Add Help section as expander
-with st.expander("Need Help? 🤔"):
+with st.expander("Need Helpssss? 🤔"):
     st.markdown("""
     ### Common Questions:
     
