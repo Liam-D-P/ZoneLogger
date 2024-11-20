@@ -37,7 +37,6 @@ zone_mapping = {
     "zone901stu": "Whack a Mole Challenge",
     "zone234vwx": "Cloud Mission",
     "zone567yza": "How Cloud Can Help",
-    "zone890bcd": "Cloud Adoption",
     "zone846fgh": "Cloud Enable",
     "zone321efg": "Voice of a Customer",
     "zone654hij": "Chat Bot Demo"
