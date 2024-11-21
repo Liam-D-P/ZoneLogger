@@ -4,6 +4,7 @@
 import streamlit as st
 import os
 from st_supabase_connection import SupabaseConnection
+from pathlib import Path
 
 # Set page to wide mode and other configurations
 st.set_page_config(
@@ -39,6 +40,22 @@ zone_mapping = {
     "zone846fgh": "Cloud Enable",
     "zone321efg": "Voice of a Customer",
     "zone654hij": "Chat Bot Demo"
+}
+
+# Badge mapping
+BADGE_MAPPING = {
+    "zone123abc": "Badges/engineering_mission.png",
+    "zone456def": "Badges/developer_control.png",
+    "zone789ghi": "Badges/harness_backstage.png",
+    "zone012jkl": "Badges/devops.png",
+    "zone345mno": "Badges/quality_engineering.png",
+    "zone678pqr": "Badges/engineering_experience.png",
+    "zone901stu": "Badges/whack_a_mole.png",
+    "zone234vwx": "Badges/cloud_mission.png",
+    "zone567yza": "Badges/cloud_help.png",
+    "zone846fgh": "Badges/cloud_enable.png",
+    "zone321efg": "Badges/voice_customer.png",
+    "zone654hij": "Badges/chat_bot.png"
 }
 
 # Initialize cookies manager with a password
@@ -229,10 +246,17 @@ def visualize_zones(user_id):
     
     for i, (complex_zone, friendly_zone) in enumerate(zones_list):
         current_col = col1 if i < mid_point else col2
+        badge_html = display_badge(BADGE_MAPPING[complex_zone])
         if complex_zone in visited_zones:
-            current_col.markdown(f"✅ {friendly_zone}", unsafe_allow_html=True)
+            current_col.markdown(
+                f"{badge_html} ✅ {friendly_zone}",
+                unsafe_allow_html=True
+            )
         else:
-            current_col.markdown(f"⭕ {friendly_zone}", unsafe_allow_html=True)
+            current_col.markdown(
+                f"{badge_html} ⭕ {friendly_zone}",
+                unsafe_allow_html=True
+            )
 
 # Function to get remaining zones
 def get_remaining_zones(user_id):
@@ -338,7 +362,11 @@ def show_zone_traffic():
     if traffic:
         most_visited_zone_id = max(traffic.items(), key=lambda x: x[1])[0]
         most_visited_count = traffic[most_visited_zone_id]
-        st.write(f"🔥 {zone_mapping[most_visited_zone_id]} is today's most visited zone!")
+        badge_html = display_badge(BADGE_MAPPING[most_visited_zone_id], size=40)
+        st.markdown(
+            f"{badge_html} 🔥 {zone_mapping[most_visited_zone_id]} is today's most visited zone!",
+            unsafe_allow_html=True
+        )
     
     # Display zone traffic
     col1, col2 = st.columns(2)
@@ -348,11 +376,18 @@ def show_zone_traffic():
     for i, (zone_id, zone_name) in enumerate(zones_list):
         current_col = col1 if i < mid_point else col2
         visits = traffic.get(zone_id, 0)
+        badge_html = display_badge(BADGE_MAPPING[zone_id])
         
         if traffic and zone_id == most_visited_zone_id:
-            current_col.write(f"{zone_name} 🔥: {visits} explorers today")
+            current_col.markdown(
+                f"{badge_html} {zone_name} 🔥: {visits} explorers today",
+                unsafe_allow_html=True
+            )
         else:
-            current_col.write(f"{zone_name}: {visits} explorers today")
+            current_col.markdown(
+                f"{badge_html} {zone_name}: {visits} explorers today",
+                unsafe_allow_html=True
+            )
 
 # Add this helper function near the other helper functions
 def get_name_from_email(email):
@@ -552,3 +587,14 @@ if user_email:
                     st.rerun()  # Refresh to show the entered state
     else:
         st.info("💡 Complete all zones to unlock the prize draw entry!")
+
+# Add this helper function
+def display_badge(badge_path, size=30):
+    """Display a badge image with specified size"""
+    try:
+        with open(badge_path, "rb") as f:
+            contents = f.read()
+        encoded = base64.b64encode(contents).decode()
+        return f'<img src="data:image/png;base64,{encoded}" width="{size}px" style="vertical-align: middle; margin-right: 10px;">'
+    except FileNotFoundError:
+        return "🏅 "  # Fallback emoji if image not found
