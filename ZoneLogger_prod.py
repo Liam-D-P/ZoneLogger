@@ -229,10 +229,19 @@ def visualize_zones(user_id):
     
     for i, (complex_zone, friendly_zone) in enumerate(zones_list):
         current_col = col1 if i < mid_point else col2
-        if complex_zone in visited_zones:
-            current_col.markdown(f"✅ {friendly_zone}", unsafe_allow_html=True)
+        if friendly_zone == "Engineering Misson":
+            # Create sub-columns for the Engineering Mission row
+            zone_col, img_col = current_col.columns([3, 1])
+            if complex_zone in visited_zones:
+                zone_col.markdown(f"✅ {friendly_zone}", unsafe_allow_html=True)
+            else:
+                zone_col.markdown(f"⭕ {friendly_zone}", unsafe_allow_html=True)
+            img_col.image("@Engineering_mission_badge.png", width=30)
         else:
-            current_col.markdown(f"⭕ {friendly_zone}", unsafe_allow_html=True)
+            if complex_zone in visited_zones:
+                current_col.markdown(f"✅ {friendly_zone}", unsafe_allow_html=True)
+            else:
+                current_col.markdown(f"⭕ {friendly_zone}", unsafe_allow_html=True)
 
 # Function to get remaining zones
 def get_remaining_zones(user_id):
