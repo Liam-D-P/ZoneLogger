@@ -229,19 +229,10 @@ def visualize_zones(user_id):
     
     for i, (complex_zone, friendly_zone) in enumerate(zones_list):
         current_col = col1 if i < mid_point else col2
-        if friendly_zone == "Engineering Misson":
-            # Create sub-columns for the Engineering Mission row
-            zone_col, img_col = current_col.columns([3, 1])
-            if complex_zone in visited_zones:
-                zone_col.markdown(f"✅ {friendly_zone}", unsafe_allow_html=True)
-            else:
-                zone_col.markdown(f"⭕ {friendly_zone}", unsafe_allow_html=True)
-            img_col.image("Badges/Engineering_mission_badge.png", width=30)
+        if complex_zone in visited_zones:
+            current_col.markdown(f"✅ {friendly_zone}", unsafe_allow_html=True)
         else:
-            if complex_zone in visited_zones:
-                current_col.markdown(f"✅ {friendly_zone}", unsafe_allow_html=True)
-            else:
-                current_col.markdown(f"⭕ {friendly_zone}", unsafe_allow_html=True)
+            current_col.markdown(f"⭕ {friendly_zone}", unsafe_allow_html=True)
 
 # Function to get remaining zones
 def get_remaining_zones(user_id):
@@ -354,39 +345,14 @@ def show_zone_traffic():
     zones_list = list(zone_mapping.items())
     mid_point = len(zones_list) // 2
     
-    # Badge mapping dictionary
-    badge_mapping = {
-        "Engineering Misson": "Engineering_mission_badge.png",
-        "Developer Control Plane": "Developer_control_plane_badge.png",
-        "Harness & Backstage": "Harness_and_backstage_badge.png",
-        "DevOps": "DevOps_badge.png",
-        "Quality Engineering - Reboot Challenge": "Quality_engineering_badge.png",
-        "Engineering Experience": "Engineering_experience_badge.png",
-        "Whack a Mole Challenge": "Whack_a_mole_badge.png",
-        "Cloud Mission": "Cloud_mission_badge.png",
-        "How Cloud Can Help": "How_cloud_can_help_badge.png",
-        "Cloud Enable": "Cloud_enable_badge.png",
-        "Voice of a Customer": "Voice_of_a_customer_badge.png",
-        "Chat Bot Demo": "Chat_bot_demo_badge.png"
-    }
-    
     for i, (zone_id, zone_name) in enumerate(zones_list):
         current_col = col1 if i < mid_point else col2
         visits = traffic.get(zone_id, 0)
         
-        # For all zones, display badge + name
-        badge_file = badge_mapping.get(zone_name)
-        if badge_file:
-            if traffic and zone_id == most_visited_zone_id:
-                current_col.markdown(f'<img src="data:image/png;base64,{base64.b64encode(open(f"Badges/{badge_file}", "rb").read()).decode()}" style="height:20px; vertical-align:middle"> {zone_name} 🔥: {visits} explorers today', unsafe_allow_html=True)
-            else:
-                current_col.markdown(f'<img src="data:image/png;base64,{base64.b64encode(open(f"Badges/{badge_file}", "rb").read()).decode()}" style="height:20px; vertical-align:middle"> {zone_name}: {visits} explorers today', unsafe_allow_html=True)
+        if traffic and zone_id == most_visited_zone_id:
+            current_col.write(f"{zone_name} 🔥: {visits} explorers today")
         else:
-            # Fallback for any zones without badges
-            if traffic and zone_id == most_visited_zone_id:
-                current_col.write(f"{zone_name} 🔥: {visits} explorers today")
-            else:
-                current_col.write(f"{zone_name}: {visits} explorers today")
+            current_col.write(f"{zone_name}: {visits} explorers today")
 
 # Add this helper function near the other helper functions
 def get_name_from_email(email):
@@ -586,4 +552,3 @@ if user_email:
                     st.rerun()  # Refresh to show the entered state
     else:
         st.info("💡 Complete all zones to unlock the prize draw entry!")
-
