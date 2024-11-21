@@ -354,17 +354,35 @@ def show_zone_traffic():
     zones_list = list(zone_mapping.items())
     mid_point = len(zones_list) // 2
     
+    # Badge mapping dictionary
+    badge_mapping = {
+        "Engineering Misson": "Engineering_mission_badge.png",
+        "Developer Control Plane": "Developer_control_plane_badge.png",
+        "Harness & Backstage": "Harness_and_backstage_badge.png",
+        "DevOps": "DevOps_badge.png",
+        "Quality Engineering - Reboot Challenge": "Quality_engineering_badge.png",
+        "Engineering Experience": "Engineering_experience_badge.png",
+        "Whack a Mole Challenge": "Whack_a_mole_badge.png",
+        "Cloud Mission": "Cloud_mission_badge.png",
+        "How Cloud Can Help": "How_cloud_can_help_badge.png",
+        "Cloud Enable": "Cloud_enable_badge.png",
+        "Voice of a Customer": "Voice_of_a_customer_badge.png",
+        "Chat Bot Demo": "Chat_bot_demo_badge.png"
+    }
+    
     for i, (zone_id, zone_name) in enumerate(zones_list):
         current_col = col1 if i < mid_point else col2
         visits = traffic.get(zone_id, 0)
         
-        if zone_name == "Engineering Misson":
-            # Use markdown to display image inline with text
+        # For all zones, display badge + name
+        badge_file = badge_mapping.get(zone_name)
+        if badge_file:
             if traffic and zone_id == most_visited_zone_id:
-                current_col.markdown(f'<img src="data:image/png;base64,{base64.b64encode(open("Badges/Engineering_mission_badge.png", "rb").read()).decode()}" style="height:20px; vertical-align:middle"> {zone_name} 🔥: {visits} explorers today', unsafe_allow_html=True)
+                current_col.markdown(f'<img src="data:image/png;base64,{base64.b64encode(open(f"Badges/{badge_file}", "rb").read()).decode()}" style="height:20px; vertical-align:middle"> {zone_name} 🔥: {visits} explorers today', unsafe_allow_html=True)
             else:
-                current_col.markdown(f'<img src="data:image/png;base64,{base64.b64encode(open("Badges/Engineering_mission_badge.png", "rb").read()).decode()}" style="height:20px; vertical-align:middle"> {zone_name}: {visits} explorers today', unsafe_allow_html=True)
+                current_col.markdown(f'<img src="data:image/png;base64,{base64.b64encode(open(f"Badges/{badge_file}", "rb").read()).decode()}" style="height:20px; vertical-align:middle"> {zone_name}: {visits} explorers today', unsafe_allow_html=True)
         else:
+            # Fallback for any zones without badges
             if traffic and zone_id == most_visited_zone_id:
                 current_col.write(f"{zone_name} 🔥: {visits} explorers today")
             else:
