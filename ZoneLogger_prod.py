@@ -236,7 +236,7 @@ def visualize_zones(user_id):
                 zone_col.markdown(f"✅ {friendly_zone}", unsafe_allow_html=True)
             else:
                 zone_col.markdown(f"⭕ {friendly_zone}", unsafe_allow_html=True)
-            img_col.image("@Engineering_mission_badge.png", width=30)
+            img_col.image("Badges/Engineering_mission_badge.png", width=30)
         else:
             if complex_zone in visited_zones:
                 current_col.markdown(f"✅ {friendly_zone}", unsafe_allow_html=True)
@@ -561,3 +561,4 @@ if user_email:
                     st.rerun()  # Refresh to show the entered state
     else:
         st.info("💡 Complete all zones to unlock the prize draw entry!")
+
