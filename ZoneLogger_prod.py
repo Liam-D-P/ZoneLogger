@@ -358,10 +358,22 @@ def show_zone_traffic():
         current_col = col1 if i < mid_point else col2
         visits = traffic.get(zone_id, 0)
         
-        if traffic and zone_id == most_visited_zone_id:
-            current_col.write(f"{zone_name} 🔥: {visits} explorers today")
+        if zone_name == "Engineering Misson":
+            # Create sub-columns for Engineering Mission
+            badge_col, text_col = current_col.columns([1, 4])
+            # Display badge
+            badge_col.image("Badges/Engineering_mission_badge.png", width=30)
+            # Display zone info
+            if traffic and zone_id == most_visited_zone_id:
+                text_col.write(f"{zone_name} 🔥: {visits} explorers today")
+            else:
+                text_col.write(f"{zone_name}: {visits} explorers today")
         else:
-            current_col.write(f"{zone_name}: {visits} explorers today")
+            # Regular display for other zones
+            if traffic and zone_id == most_visited_zone_id:
+                current_col.write(f"{zone_name} 🔥: {visits} explorers today")
+            else:
+                current_col.write(f"{zone_name}: {visits} explorers today")
 
 # Add this helper function near the other helper functions
 def get_name_from_email(email):
