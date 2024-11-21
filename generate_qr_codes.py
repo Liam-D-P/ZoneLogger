@@ -57,19 +57,14 @@ def generate_qr_code(data, zone_name):
         badge = badge.convert('RGBA')
         
         # Calculate badge size (about 40% of QR code size)
-        badge_size = int(qr_image.size[0] / 2.5)  # Changed // to / and wrapped in int()
+        badge_size = int(qr_image.size[0] / 2.5)
         badge = badge.resize((badge_size, badge_size))
-        
-        # Create a white background for the badge
-        white_bg = Image.new('RGBA', badge.size, 'white')
-        white_bg.paste(badge, (0, 0), badge)
-        badge = white_bg
         
         # Calculate position to center badge
         pos = ((qr_image.size[0] - badge.size[0]) // 2,
                (qr_image.size[1] - badge.size[1]) // 2)
         
-        # Paste badge onto QR code
+        # Paste badge directly onto QR code using alpha channel
         qr_image.paste(badge, pos, badge)
     except Exception as e:
         print(f"Warning: Could not add badge for {zone_name}: {e}")
