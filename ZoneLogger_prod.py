@@ -358,18 +358,10 @@ def show_zone_traffic():
         current_col = col1 if i < mid_point else col2
         visits = traffic.get(zone_id, 0)
         
-        # Create sub-columns for each zone row
-        zone_col, badge_col = current_col.columns([4, 1])
-        
-        # Display zone name and visit count
         if traffic and zone_id == most_visited_zone_id:
-            zone_col.write(f"{zone_name} 🔥: {visits} explorers today")
+            current_col.write(f"{zone_name} 🔥: {visits} explorers today")
         else:
-            zone_col.write(f"{zone_name}: {visits} explorers today")
-        
-        # Display corresponding badge
-        badge_filename = zone_name.lower().replace(" ", "_").replace("-", "_").replace("&", "and") + "_badge.png"
-        badge_col.image(f"Badges/{badge_filename}", width=30)
+            current_col.write(f"{zone_name}: {visits} explorers today")
 
 # Add this helper function near the other helper functions
 def get_name_from_email(email):
