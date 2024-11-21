@@ -359,17 +359,12 @@ def show_zone_traffic():
         visits = traffic.get(zone_id, 0)
         
         if zone_name == "Engineering Misson":
-            # Create sub-columns for Engineering Mission
-            badge_col, text_col = current_col.columns([1, 4])
-            # Display badge
-            badge_col.image("Badges/Engineering_mission_badge.png", width=30)
-            # Display zone info
+            # Use markdown to display image inline with text
             if traffic and zone_id == most_visited_zone_id:
-                text_col.write(f"{zone_name} 🔥: {visits} explorers today")
+                current_col.markdown(f'<img src="data:image/png;base64,{base64.b64encode(open("Badges/Engineering_mission_badge.png", "rb").read()).decode()}" style="height:20px; vertical-align:middle"> {zone_name} 🔥: {visits} explorers today', unsafe_allow_html=True)
             else:
-                text_col.write(f"{zone_name}: {visits} explorers today")
+                current_col.markdown(f'<img src="data:image/png;base64,{base64.b64encode(open("Badges/Engineering_mission_badge.png", "rb").read()).decode()}" style="height:20px; vertical-align:middle"> {zone_name}: {visits} explorers today', unsafe_allow_html=True)
         else:
-            # Regular display for other zones
             if traffic and zone_id == most_visited_zone_id:
                 current_col.write(f"{zone_name} 🔥: {visits} explorers today")
             else:
