@@ -6,18 +6,18 @@ from pathlib import Path
 
 # Define zone mapping directly in this script
 zone_mapping = {
-    "zone123abc": "Engineering Misson",
-    "zone456def": "Developer Control Plane",
-    "zone789ghi": "Harness & Backstage",
-    "zone012jkl": "DevOps",
-    "zone345mno": "Quality Engineering - Reboot Challenge",
-    "zone678pqr": "Engineering Experience",
-    "zone901stu": "Whack a Mole Challenge",
-    "zone234vwx": "Cloud Mission",
-    "zone567yza": "How Cloud Can Help",
-    "zone846fgh": "Cloud Enable",
-    "zone321efg": "Voice of a Customer",
-    "zone654hij": "Chat Bot Demo"
+    "zone123abc": "Wack A Mole Challenge", 
+    "zone456def": "Chat Bot Demo",
+    "zone789ghi": "Engineering Experience",
+    "zone012jkl": "Cloud Adoption", 
+    "zone345mno": "DevOps",
+    "zone678pqr": "Quality Engineering",
+    "zone901stu": "Voice of a Customer",
+    "zone567yza": "Engineering Mission",
+    "zone846fgh": "Developer Control Plane",
+    "zone642fvs": "Harness and Backstage",
+    "zone321efg": "Cloud Mission",
+    "zone654hij": "How Cloud Can Help",
 }
 
 def download_poppins_font():
@@ -30,7 +30,7 @@ def download_poppins_font():
     return str(font_path)
 
 def generate_qr_code(data, zone_name):
-    """Generate a QR code with embedded logo and return the image"""
+    """Generate a QR code with embedded badge and return the image"""
     # Create QR code instance
     qr = qrcode.QRCode(
         version=1,
@@ -47,25 +47,32 @@ def generate_qr_code(data, zone_name):
     qr_image = qr.make_image(fill_color="black", back_color="white")
     qr_image = qr_image.convert('RGBA')
     
-    # Open and resize logo
-    logo = Image.open("Images/Reboot24_logo.jpg")
-    logo = logo.convert('RGBA')
+    # Clean the zone name to match badge filename format
+    clean_name = zone_name.replace(" ", "_").replace("-", "_").replace("&", "and")
+    badge_path = f"Badges/{clean_name}_badge.png"
     
-    # Calculate logo size (about 25% of QR code size)
-    logo_size = qr_image.size[0] // 4
-    logo = logo.resize((logo_size, logo_size))
-    
-    # Create a white background for the logo
-    white_bg = Image.new('RGBA', logo.size, 'white')
-    white_bg.paste(logo, (0, 0), logo)
-    logo = white_bg
-    
-    # Calculate position to center logo
-    pos = ((qr_image.size[0] - logo.size[0]) // 2,
-           (qr_image.size[1] - logo.size[1]) // 2)
-    
-    # Paste logo onto QR code
-    qr_image.paste(logo, pos, logo)
+    try:
+        # Open and resize badge
+        badge = Image.open(badge_path)
+        badge = badge.convert('RGBA')
+        
+        # Calculate badge size (about 40% of QR code size)
+        badge_size = int(qr_image.size[0] / 2.5)  # Changed // to / and wrapped in int()
+        badge = badge.resize((badge_size, badge_size))
+        
+        # Create a white background for the badge
+        white_bg = Image.new('RGBA', badge.size, 'white')
+        white_bg.paste(badge, (0, 0), badge)
+        badge = white_bg
+        
+        # Calculate position to center badge
+        pos = ((qr_image.size[0] - badge.size[0]) // 2,
+               (qr_image.size[1] - badge.size[1]) // 2)
+        
+        # Paste badge onto QR code
+        qr_image.paste(badge, pos, badge)
+    except Exception as e:
+        print(f"Warning: Could not add badge for {zone_name}: {e}")
     
     # Create a new image with space for text
     padding = 20
