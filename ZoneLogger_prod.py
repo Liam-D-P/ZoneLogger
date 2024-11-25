@@ -30,7 +30,6 @@ zone_mapping = {
     "zone123abc": "Wack A Mole Challenge", 
     "zone456def": "Chat Bot Demo",
     "zone789ghi": "Engineering Experience",
-    "zone012jkl": "Cloud Adoption", 
     "zone345mno": "DevOps",
     "zone678pqr": "Quality Engineering",
     "zone901stu": "Voice of a Customer",
