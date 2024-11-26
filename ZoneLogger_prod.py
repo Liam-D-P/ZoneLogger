@@ -383,7 +383,7 @@ with st.expander("Need Help? 🤔"):
     A: Prize draw winners will be notified by email after the event
     
     **Q: How many zones do I need to visit?**
-    A: Visit all 12 zones to be eligible for the prize draw
+    A: Visit all 11 zones to be eligible for the prize draw
     
     **Q: I need assistance!**
     A: Find a volunteer from the Quality Engineering CoE stand - they will be happy to help!
