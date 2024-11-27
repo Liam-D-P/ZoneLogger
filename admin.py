@@ -218,28 +218,11 @@ if not visits_df.empty:
         'Percentage': (sorted_counts.values / unique_users * 100).round(1)
     })
     
-    # Create a more detailed chart using plotly
-    import plotly.express as px
-    
-    fig = px.bar(progress_viz, 
-                 x='Users', 
-                 y='Zones',
-                 orientation='h',
-                 text=[f"{users} users ({pct}%)" for users, pct in zip(progress_viz['Users'], progress_viz['Percentage'])],
-                 color='Users',
-                 color_continuous_scale='Viridis')
-    
-    # Customize layout
-    fig.update_layout(
-        title="User Progress Distribution",
-        xaxis_title="Number of Users",
-        yaxis_title="Zones Completed",
-        showlegend=False,
-        height=400
+    # Create bar chart using Streamlit
+    st.bar_chart(
+        progress_viz.set_index('Zones')['Users'],
+        use_container_width=True
     )
-    
-    # Display the chart
-    st.plotly_chart(fig, use_container_width=True)
     
     # Add a concise summary text
     st.markdown(f"""
