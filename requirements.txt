@@ -8,3 +8,4 @@ psycopg2-binary
 sqlalchemy>=1.4.0
 greenlet
 st-supabase-connection
+plotly
