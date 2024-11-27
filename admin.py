@@ -137,6 +137,10 @@ visits_df = pd.DataFrame([
     } for visit in visits
 ])
 
+# Add Zone Name column by mapping zone IDs to names - Add this right after creating visits_df
+if not visits_df.empty:
+    visits_df['Zone Name'] = visits_df['Zone'].map(zone_mapping)
+
 # Statistics Section - Move this to the top as it's the most important overview
 st.header("Key Statistics 📈")
 
