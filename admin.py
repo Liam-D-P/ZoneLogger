@@ -227,6 +227,45 @@ if not visits_df.empty:
         else:
             st.markdown(f"- {count} Users have visited {zones} zones")
     
+    # Add Completion Pathways Analysis
+    st.markdown("### Completion Pathways Analysis")
+    
+    # Calculate how many users reached each number of zones
+    pathway_data = []
+    for zone_count in range(1, len(zone_mapping) + 1):
+        users_reached = len(user_zone_counts[user_zone_counts >= zone_count])
+        pathway_data.append({
+            'Milestone': f"{zone_count} or more zones",
+            'Users': users_reached,
+            'Drop-off': unique_users - users_reached
+        })
+    
+    pathway_df = pd.DataFrame(pathway_data)
+    
+    # Calculate drop-off percentages
+    pathway_df['Retention Rate'] = (pathway_df['Users'] / unique_users * 100).round(1)
+    pathway_df['Drop-off Rate'] = (pathway_df['Drop-off'] / unique_users * 100).round(1)
+    
+    # Display the funnel chart
+    st.markdown("#### User Retention Funnel")
+    st.markdown("Shows how many users continued scanning after reaching each milestone:")
+    
+    # Create a bar chart showing retention
+    chart_data = pd.DataFrame({
+        'Milestone': pathway_df['Milestone'],
+        'Users Retained': pathway_df['Users']
+    })
+    st.bar_chart(chart_data.set_index('Milestone'))
+    
+    # Add textual analysis
+    st.markdown("#### Key Drop-off Points:")
+    for i, row in pathway_df.iterrows():
+        if i > 0:  # Skip first row to calculate drop-off from previous milestone
+            users_lost = pathway_df.iloc[i-1]['Users'] - row['Users']
+            if users_lost > 0:
+                percentage = (users_lost / pathway_df.iloc[i-1]['Users'] * 100).round(1)
+                st.markdown(f"- **{users_lost}** users ({percentage}%) stopped after completing {i} zones")
+    
     # Zone popularity
     st.subheader("Zone Popularity")
     zone_counts = visits_df['Zone Name'].value_counts()
