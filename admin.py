@@ -204,12 +204,17 @@ st.bar_chart(
     use_container_width=True
 )
     
-# Add a concise summary text
+# Calculate meaningful statistics
+avg_zones_visited = user_zone_counts.mean().round(1)
+median_zones = user_zone_counts.median()
+incomplete_users = unique_users - completed_users
+    
 st.markdown(f"""
-**Quick Summary:**
-- Most common: **{progress_viz['Users'].max()}** users completed {progress_viz.loc[progress_viz['Users'].idxmax(), 'Zones']}
-- Full completion: **{completed_users}** users completed all {len(zone_mapping)} zones
-- Total participants: **{unique_users}** users
+**Progress Overview:**
+- Average zones visited per user: **{avg_zones_visited}** zones
+- Median zones visited: **{median_zones}** zones
+- **{completed_users}** users completed all zones
+- **{incomplete_users}** users still in progress
 """)
 
 st.markdown("---")  # Add divider
