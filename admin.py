@@ -220,7 +220,7 @@ if not visits_df.empty:
     st.dataframe(completion_df, use_container_width=True)
     
     # Add simple text explanation
-    st.markdown("### Breakdown Summary:")
+    st.markdown("### User Progress Summary:")
     for zones, count in completion_counts.items():
         if count == 1:
             st.markdown(f"- {count} User has visited {zones} zones")
