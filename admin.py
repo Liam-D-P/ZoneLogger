@@ -255,12 +255,32 @@ if not visits_df.empty:
     st.markdown("#### User Retention Funnel")
     st.markdown("Shows how many users continued scanning after reaching each milestone:")
     
-    # Create a bar chart showing retention
-    chart_data = pd.DataFrame({
-        'Milestone': pathway_df['Milestone'],
-        'Users Retained': pathway_df['Users']
-    })
-    st.bar_chart(chart_data.set_index('Milestone'))
+    import plotly.graph_objects as go
+    
+    # Create funnel chart
+    fig = go.Figure(go.Funnel(
+        y=pathway_df['Milestone'],
+        x=pathway_df['Users'],
+        textinfo="value+percent initial",
+        textposition="inside",
+        opacity=0.65,
+        marker={
+            "color": ["royalblue"] * len(pathway_df),
+            "line": {"width": [2] * len(pathway_df)}
+        },
+    ))
+    
+    # Customize layout
+    fig.update_layout(
+        title_text="User Retention Funnel",
+        showlegend=False,
+        height=600,
+        font=dict(size=14),
+        margin=dict(t=60, b=0)  # Adjust margins
+    )
+    
+    # Display the funnel chart
+    st.plotly_chart(fig, use_container_width=True)
     
     # Add textual analysis
     st.markdown("#### Key Drop-off Points:")
