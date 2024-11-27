@@ -132,12 +132,6 @@ def show_zone_interface():
     with tab1:
         st.markdown("### 📱 Scan Zone QR Code")
         
-        # Add a Try Again button in a column to keep layout clean
-        col1, col2, col3 = st.columns([1,2,1])
-        with col2:
-            if st.button("🔄 Try Again (If Camera Not Working)", use_container_width=True):
-                st.rerun()  # This will refresh the entire page
-        
         st.info("Point your camera at a zone QR code to log your visit")
         
         # Initialize the QR scanner
@@ -438,11 +432,27 @@ if testing_mode:
                 st.success(f"Now using email: {temp_email}")
                 st.rerun()
 
-        st.warning("Warning: These actions will affect your progress!")
-        if st.button("Reset My Progress", type="primary"):
-            reset_user_progress(st.session_state.user_email)
-            st.success("Progress reset successfully!")
-            st.rerun()
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.warning("Warning: These actions will affect your progress!")
+            if st.button("Reset My Progress", type="primary"):
+                reset_user_progress(st.session_state.user_email)
+                st.success("Progress reset successfully!")
+                st.rerun()
+        
+        with col2:
+            st.warning("Warning: This will clear all cookies!")
+            if st.button("Reset Cookies", type="primary"):
+                # Clear all cookies
+                for key in list(cookies.keys()):
+                    del cookies[key]
+                cookies.save()
+                # Clear session state
+                for key in list(st.session_state.keys()):
+                    del st.session_state[key]
+                st.success("Cookies cleared successfully!")
+                st.rerun()
 
 # Check for user email in cookies
 if 'user_email' not in cookies and not st.session_state.show_email_override:
@@ -488,12 +498,6 @@ if user_email:
     
     with tab1:
         st.markdown("### 📱 Scan Zone QR Code")
-        
-        # Add a Try Again button in a column to keep layout clean
-        col1, col2, col3 = st.columns([1,2,1])
-        with col2:
-            if st.button("🔄 Try Again (If Camera Not Working)", use_container_width=True):
-                st.rerun()  # This will refresh the entire page
         
         st.info("Point your camera at a zone QR code to log your visit")
         
