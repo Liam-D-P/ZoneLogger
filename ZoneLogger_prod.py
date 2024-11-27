@@ -9,7 +9,8 @@ from st_supabase_connection import SupabaseConnection
 st.set_page_config(
     page_title="Reboot Zone Explorer",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="collapsed",
+    theme="dark"
 )
 
 # Import all required libraries
