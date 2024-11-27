@@ -1,5 +1,5 @@
 # This Streamlit application logs user visits to different zones and checks if all zones have been visited.
-# It uses an SQLite database to store visit data and a cookie manager to handle user sessions securely.
+# It uses a Supa database to store visit data and a cookie manager to handle user sessions securely.
 
 import streamlit as st
 import os
