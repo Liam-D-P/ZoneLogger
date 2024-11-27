@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+import plotly.graph_objects as go
 from st_supabase_connection import SupabaseConnection
 from ZoneLogger_prod import zone_mapping  # Import your zone mapping
 
@@ -73,6 +74,8 @@ st.title("Zone Explorer Admin Dashboard 🎯")
 if st.button("🔄 Refresh Dashboard"):
     st.rerun()
 
+st.markdown("---")  # Add divider
+
 # Prize Draw Section
 st.header("Prize Draw Entries 🎁")
 prize_draw_entries = get_prize_entries()
@@ -84,36 +87,7 @@ prize_draw_df = pd.DataFrame([
 ])
 st.dataframe(prize_draw_df, use_container_width=True)
 
-# Random Winner Draw
-if st.button("Draw Random Winner! 🎲"):
-    conn = get_db_connection()
-    
-    # Get all eligible entries
-    prize_entries = conn.table("prize_draw")\
-        .select("user_id, email")\
-        .execute()
-    
-    # Convert to DataFrame
-    prize_draw_entries = pd.DataFrame(prize_entries.data)
-    
-    # Get visit counts for each user
-    visits = conn.table("visits")\
-        .select("user_id, zone")\
-        .execute()
-    
-    visits_df = pd.DataFrame(visits.data)
-    user_completion = visits_df.groupby('user_id')['zone'].nunique()
-    eligible_users = user_completion[user_completion == len(zone_mapping)].index
-    
-    eligible_entries = prize_draw_entries[prize_draw_entries['user_id'].isin(eligible_users)]
-    
-    if len(eligible_entries) == 0:
-        st.warning("No eligible entries found! Participants must visit all zones to be eligible.")
-    else:
-        # Draw single winner
-        winner = eligible_entries.sample(n=1)
-        st.success("🎉 Winner drawn!")
-        st.markdown(f"### 🏆 Winner: {winner['email'].iloc[0]}")
+st.markdown("---")  # Add divider
 
 # Visits Section
 st.header("Zone Visits 📊")
@@ -141,7 +115,9 @@ visits_df = pd.DataFrame([
 if not visits_df.empty:
     visits_df['Zone Name'] = visits_df['Zone'].map(zone_mapping)
 
-# Statistics Section - Move this to the top as it's the most important overview
+st.markdown("---")  # Add divider
+
+# Statistics Section
 st.header("Key Statistics 📈")
 
 if not visits_df.empty:
@@ -165,145 +141,152 @@ if not visits_df.empty:
     with col4:
         st.metric("Completion Rate", f"{completion_rate:.1f}%")
 
-    # Completion Analysis Section
-    st.header("Completion Analysis 📊")
-    
-    # Create completion rate visualization
-    completed_all = len(user_zone_counts[user_zone_counts == len(zone_mapping)])
-    not_completed = len(user_zone_counts[user_zone_counts < len(zone_mapping)])
-    
-    completion_viz_data = pd.DataFrame({
-        'Completion Status': ['Completed All Zones', 'Did Not Complete All Zones'],
-        'Number of Users': [completed_all, not_completed]
-    })
-    
-    # Create bar chart
-    st.bar_chart(completion_viz_data.set_index('Completion Status'))
-    st.markdown(f"The completion rate is approximately {completion_rate:.2f}%, meaning that about {int(completion_rate)}% of users scanned all 11 zones.")
-    
-    # Calculate and display average completion time
-    if completed_users > 0:
-        completed_user_ids = user_zone_counts[user_zone_counts == len(zone_mapping)].index
-        
-        completion_times = []
-        for user_id in completed_user_ids:
-            user_visits = visits_df[visits_df['User ID'] == user_id]
-            if not user_visits.empty:
-                user_visits['Timestamp'] = pd.to_datetime(user_visits['Timestamp'])
-                first_visit = user_visits['Timestamp'].min()
-                last_visit = user_visits['Timestamp'].max()
-                completion_time = (last_visit - first_visit).total_seconds() / 60
-                completion_times.append(completion_time)
-        
-        if completion_times:
-            avg_completion_time = sum(completion_times) / len(completion_times)
-            avg_hours = int(avg_completion_time // 60)
-            avg_minutes = int(avg_completion_time % 60)
-            
-            if avg_hours > 0:
-                st.markdown(f"Users who completed all zones took on average **{avg_hours} hours and {avg_minutes} minutes** to visit all zones.")
-            else:
-                st.markdown(f"Users who completed all zones took on average **{avg_minutes} minutes** to visit all zones.")
+st.markdown("---")  # Add divider
 
-    # User Progress Breakdown Section
-    st.subheader("User Progress Breakdown")
+# Completion Analysis Section
+st.header("Completion Analysis 📊")
     
-    # Sort data in descending order by number of zones
-    sorted_counts = user_zone_counts.value_counts().sort_index(ascending=False)
+# Create completion rate visualization
+completed_all = len(user_zone_counts[user_zone_counts == len(zone_mapping)])
+not_completed = len(user_zone_counts[user_zone_counts < len(zone_mapping)])
     
-    # Create DataFrame for visualization
-    progress_viz = pd.DataFrame({
-        'Zones': [f"{zones} zones {'✅' if zones == len(zone_mapping) else ''}" for zones in sorted_counts.index],
-        'Users': sorted_counts.values,
-        'Percentage': (sorted_counts.values / unique_users * 100).round(1)
-    })
+completion_viz_data = pd.DataFrame({
+    'Completion Status': ['Completed All Zones', 'Did Not Complete All Zones'],
+    'Number of Users': [completed_all, not_completed]
+})
     
-    # Create bar chart using Streamlit
-    st.bar_chart(
-        progress_viz.set_index('Zones')['Users'],
-        use_container_width=True
-    )
+# Create bar chart
+st.bar_chart(completion_viz_data.set_index('Completion Status'))
+st.markdown(f"The completion rate is approximately {completion_rate:.2f}%, meaning that about {int(completion_rate)}% of users scanned all 11 zones.")
     
-    # Add a concise summary text
-    st.markdown(f"""
-    **Quick Summary:**
-    - Most common: **{progress_viz['Users'].max()}** users completed {progress_viz.loc[progress_viz['Users'].idxmax(), 'Zones']}
-    - Full completion: **{completed_users}** users completed all {len(zone_mapping)} zones
-    - Total participants: **{unique_users}** users
-    """)
+# Calculate and display average completion time
+if completed_users > 0:
+    completed_user_ids = user_zone_counts[user_zone_counts == len(zone_mapping)].index
+        
+    completion_times = []
+    for user_id in completed_user_ids:
+        user_visits = visits_df[visits_df['User ID'] == user_id]
+        if not user_visits.empty:
+            user_visits['Timestamp'] = pd.to_datetime(user_visits['Timestamp'])
+            first_visit = user_visits['Timestamp'].min()
+            last_visit = user_visits['Timestamp'].max()
+            completion_time = (last_visit - first_visit).total_seconds() / 60
+            completion_times.append(completion_time)
+        
+    if completion_times:
+        avg_completion_time = sum(completion_times) / len(completion_times)
+        avg_hours = int(avg_completion_time // 60)
+        avg_minutes = int(avg_completion_time % 60)
+        
+        if avg_hours > 0:
+            st.markdown(f"Users who completed all zones took on average **{avg_hours} hours and {avg_minutes} minutes** to visit all zones.")
+        else:
+            st.markdown(f"Users who completed all zones took on average **{avg_minutes} minutes** to visit all zones.")
 
-    # Add Completion Pathways Analysis
-    st.markdown("### Completion Pathways Analysis")
+st.markdown("---")  # Add divider
+
+# User Progress Breakdown Section
+st.subheader("User Progress Breakdown")
     
-    # Calculate how many users reached each number of zones
-    pathway_data = []
-    for zone_count in range(1, len(zone_mapping) + 1):
-        users_reached = len(user_zone_counts[user_zone_counts >= zone_count])
-        pathway_data.append({
-            'Milestone': f"{zone_count} or more zones",
-            'Users': users_reached,
-            'Drop-off': unique_users - users_reached
-        })
+# Sort data in descending order by number of zones
+sorted_counts = user_zone_counts.value_counts().sort_index(ascending=False)
     
-    pathway_df = pd.DataFrame(pathway_data)
+# Create DataFrame for visualization
+progress_viz = pd.DataFrame({
+    'Zones': [f"{zones} zones {'✅' if zones == len(zone_mapping) else ''}" for zones in sorted_counts.index],
+    'Users': sorted_counts.values,
+    'Percentage': (sorted_counts.values / unique_users * 100).round(1)
+})
     
-    # Calculate drop-off percentages
-    pathway_df['Retention Rate'] = (pathway_df['Users'] / unique_users * 100).round(1)
-    pathway_df['Drop-off Rate'] = (pathway_df['Drop-off'] / unique_users * 100).round(1)
+# Create bar chart using Streamlit
+st.bar_chart(
+    progress_viz.set_index('Zones')['Users'],
+    use_container_width=True
+)
     
-    # Display the funnel chart
-    st.markdown("#### User Retention Funnel")
-    st.markdown("Shows how many users continued scanning after reaching each milestone:")
+# Add a concise summary text
+st.markdown(f"""
+**Quick Summary:**
+- Most common: **{progress_viz['Users'].max()}** users completed {progress_viz.loc[progress_viz['Users'].idxmax(), 'Zones']}
+- Full completion: **{completed_users}** users completed all {len(zone_mapping)} zones
+- Total participants: **{unique_users}** users
+""")
+
+st.markdown("---")  # Add divider
+
+# Completion Pathways Analysis
+st.markdown("### Completion Pathways Analysis")
     
-    import plotly.graph_objects as go
-    
-    # Create funnel chart
-    fig = go.Figure(go.Funnel(
-        y=pathway_df['Milestone'],
-        x=pathway_df['Users'],
-        textinfo="value+percent initial",
-        textposition="inside",
-        opacity=0.65,
-        marker={
-            "color": ["royalblue"] * len(pathway_df),
-            "line": {"width": [2] * len(pathway_df)}
-        },
-    ))
-    
-    # Customize layout
-    fig.update_layout(
-        title_text="User Retention Funnel",
-        showlegend=False,
-        height=600,
-        font=dict(size=14),
-        margin=dict(t=60, b=0)  # Adjust margins
-    )
-    
-    # Display the funnel chart
-    st.plotly_chart(fig, use_container_width=True)
-    
-    # Add textual analysis
-    st.markdown("#### Key Drop-off Points:")
-    for i, row in pathway_df.iterrows():
-        if i > 0:  # Skip first row to calculate drop-off from previous milestone
-            users_lost = pathway_df.iloc[i-1]['Users'] - row['Users']
-            if users_lost > 0:
-                percentage = (users_lost / pathway_df.iloc[i-1]['Users'] * 100).round(1)
-                st.markdown(f"- **{users_lost}** users ({percentage}%) stopped after completing {i} zones")
-    
-    # Zone popularity
-    st.subheader("Zone Popularity")
-    zone_counts = visits_df['Zone Name'].value_counts()
-    chart_data = pd.DataFrame({
-        'Zone': zone_counts.index,
-        'Visits': zone_counts.values
+# Calculate how many users reached each number of zones
+pathway_data = []
+for zone_count in range(1, len(zone_mapping) + 1):
+    users_reached = len(user_zone_counts[user_zone_counts >= zone_count])
+    pathway_data.append({
+        'Milestone': f"{zone_count} or more zones",
+        'Users': users_reached,
+        'Drop-off': unique_users - users_reached
     })
-    st.bar_chart(chart_data.set_index('Zone'))
     
-    # Raw Data Section - Move to bottom as it's most detailed
-    st.header("Raw Visit Data 📝")
+pathway_df = pd.DataFrame(pathway_data)
+    
+# Calculate drop-off percentages
+pathway_df['Retention Rate'] = (pathway_df['Users'] / unique_users * 100).round(1)
+pathway_df['Drop-off Rate'] = (pathway_df['Drop-off'] / unique_users * 100).round(1)
+    
+# Display the funnel chart
+st.markdown("#### User Retention Funnel")
+st.markdown("Shows how many users continued scanning after reaching each milestone:")
+
+# Create funnel chart
+fig = go.Figure(go.Funnel(
+    y=pathway_df['Milestone'],
+    x=pathway_df['Users'],
+    textinfo="value+percent initial",
+    textposition="inside",
+    opacity=0.65,
+    marker={
+        "color": ["royalblue"] * len(pathway_df),
+        "line": {"width": [2] * len(pathway_df)}
+    },
+))
+    
+# Customize layout
+fig.update_layout(
+    title_text="User Retention Funnel",
+    showlegend=False,
+    height=600,
+    font=dict(size=14),
+    margin=dict(t=60, b=0)  # Adjust margins
+)
+    
+# Display the funnel chart
+st.plotly_chart(fig, use_container_width=True)
+    
+# Add textual analysis
+st.markdown("#### Key Drop-off Points:")
+for i, row in pathway_df.iterrows():
+    if i > 0:  # Skip first row to calculate drop-off from previous milestone
+        users_lost = pathway_df.iloc[i-1]['Users'] - row['Users']
+        if users_lost > 0:
+            percentage = (users_lost / pathway_df.iloc[i-1]['Users'] * 100).round(1)
+            st.markdown(f"- **{users_lost}** users ({percentage}%) stopped after completing {i} zones")
+    
+st.markdown("---")  # Add divider
+
+# Zone Popularity
+st.subheader("Zone Popularity")
+zone_counts = visits_df['Zone Name'].value_counts()
+chart_data = pd.DataFrame({
+    'Zone': zone_counts.index,
+    'Visits': zone_counts.values
+})
+st.bar_chart(chart_data.set_index('Zone'))
+
+st.markdown("---")  # Add divider
+
+# Raw Data Section
+st.header("Raw Visit Data 📝")
+if not visits_df.empty:
     st.dataframe(visits_df, use_container_width=True)
-
 else:
     st.info("No visits found in the selected date range")
-  
