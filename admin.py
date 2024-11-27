@@ -9,7 +9,8 @@ from ZoneLogger_prod import zone_mapping  # Import your zone mapping
 st.set_page_config(
     page_title="Zone Explorer Admin",
     page_icon="⚙️",
-    layout="wide"
+    layout="wide",
+    theme="dark"
 )
 
 # Password protection
