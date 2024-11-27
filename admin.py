@@ -222,7 +222,7 @@ pathway_data = []
 for zone_count in range(1, len(zone_mapping) + 1):
     users_reached = len(user_zone_counts[user_zone_counts >= zone_count])
     pathway_data.append({
-        'Milestone': f"{zone_count} or more zones",
+        'Milestone': f"Users who visited {zone_count}+ zones",
         'Users': users_reached,
         'Drop-off': unique_users - users_reached
     })
@@ -235,7 +235,12 @@ pathway_df['Drop-off Rate'] = (pathway_df['Drop-off'] / unique_users * 100).roun
     
 # Display the funnel chart
 st.markdown("#### User Retention Funnel")
-st.markdown("Shows how many users continued scanning after reaching each milestone:")
+st.markdown("""
+This funnel shows user progression through the zones:
+- Top number (23) represents total users who visited at least 1 zone
+- Each level shows how many users visited that many zones or more
+- Bottom number shows users who completed all zones
+""")
 
 # Create funnel chart
 fig = go.Figure(go.Funnel(
