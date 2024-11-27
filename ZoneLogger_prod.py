@@ -384,7 +384,7 @@ st.title("Welcome to the Reboot 2024 Engineering & Cloud Zone Explorer!")
 st.warning("""
 ### 🎥 Important: Camera Permission Required
 
-**You MUST allow camera access when prompted to scan QR codes!**
+**You MUST allow camera access when prompted to, after providing your email!**
 
 - Look for the camera permission popup in your browser
 - Click 'Allow' when asked to access your camera
