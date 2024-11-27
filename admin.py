@@ -182,6 +182,24 @@ if not visits_df.empty:
     with col4:
         st.metric("Completion Rate", f"{completion_rate:.1f}%")
     
+    # Create completion rate visualization
+    st.subheader("User Completion Rate For All Zones")
+    
+    # Calculate the data
+    completed_all = len(user_zone_counts[user_zone_counts == len(zone_mapping)])
+    not_completed = len(user_zone_counts[user_zone_counts < len(zone_mapping)])
+    
+    completion_viz_data = pd.DataFrame({
+        'Completion Status': ['Completed All Zones', 'Did Not Complete All Zones'],
+        'Number of Users': [completed_all, not_completed]
+    })
+    
+    # Create bar chart
+    st.bar_chart(completion_viz_data.set_index('Completion Status'))
+    
+    # Add text explanation
+    st.markdown(f"The completion rate is approximately {completion_rate:.2f}%, meaning that about {int(completion_rate)}% of users scanned all 11 zones.")
+    
     # Add detailed completion breakdown
     st.subheader("User Progress Breakdown")
     completion_counts = user_zone_counts.value_counts().sort_index()
