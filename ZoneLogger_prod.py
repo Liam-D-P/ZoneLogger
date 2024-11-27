@@ -132,6 +132,12 @@ def show_zone_interface():
     with tab1:
         st.markdown("### 📱 Scan Zone QR Code")
         
+        # Add a Try Again button in a column to keep layout clean
+        col1, col2, col3 = st.columns([1,2,1])
+        with col2:
+            if st.button("🔄 Try Again (If Camera Not Working)", use_container_width=True):
+                st.rerun()  # This will refresh the entire page
+        
         st.info("Point your camera at a zone QR code to log your visit")
         
         # Initialize the QR scanner
@@ -482,6 +488,12 @@ if user_email:
     
     with tab1:
         st.markdown("### 📱 Scan Zone QR Code")
+        
+        # Add a Try Again button in a column to keep layout clean
+        col1, col2, col3 = st.columns([1,2,1])
+        with col2:
+            if st.button("🔄 Try Again (If Camera Not Working)", use_container_width=True):
+                st.rerun()  # This will refresh the entire page
         
         st.info("Point your camera at a zone QR code to log your visit")
         
