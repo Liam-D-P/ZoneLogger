@@ -131,6 +131,18 @@ def show_zone_interface():
     
     with tab1:
         st.markdown("### 📱 Scan Zone QR Code")
+        
+        # Add prominent camera permission warning
+        st.warning("""
+        ### 🎥 Camera Permission Required
+        
+        **You MUST allow camera access when prompted to scan QR codes!**
+        
+        - Look for the camera permission popup in your browser
+        - Click 'Allow' when asked to access your camera
+        - If you accidentally denied it, refresh the page to see the prompt again
+        """)
+        
         st.info("Point your camera at a zone QR code to log your visit")
         
         # Initialize the QR scanner
@@ -468,6 +480,18 @@ if user_email:
     
     with tab1:
         st.markdown("### 📱 Scan Zone QR Code")
+        
+        # Add prominent camera permission warning
+        st.warning("""
+        ### 🎥 Camera Permission Required
+        
+        **You MUST allow camera access when prompted to scan QR codes!**
+        
+        - Look for the camera permission popup in your browser
+        - Click 'Allow' when asked to access your camera
+        - If you accidentally denied it, refresh the page to see the prompt again
+        """)
+        
         st.info("Point your camera at a zone QR code to log your visit")
         
         # Initialize the QR scanner
