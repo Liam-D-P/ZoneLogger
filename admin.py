@@ -161,13 +161,36 @@ else:
 # Statistics Section
 st.header("Statistics 📈")
 
-# Total unique users
-unique_users = len(visits_df["User ID"].unique()) if not visits_df.empty else 0
-total_visits = len(visits_df) if not visits_df.empty else 0
-
-col1, col2 = st.columns(2)
-with col1:
-    st.metric("Unique Users", unique_users)
-with col2:
-    st.metric("Total Visits", total_visits)
+if not visits_df.empty:
+    # Total unique users
+    unique_users = len(visits_df["User ID"].unique())
+    total_visits = len(visits_df)
+    
+    # Calculate completion rates
+    user_zone_counts = visits_df.groupby('User ID')['Zone'].nunique()
+    completed_users = len(user_zone_counts[user_zone_counts == len(zone_mapping)])
+    completion_rate = (completed_users / unique_users * 100) if unique_users > 0 else 0
+    
+    # Display metrics in columns
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Unique Users", unique_users)
+    with col2:
+        st.metric("Total Visits", total_visits)
+    with col3:
+        st.metric("Users Completed All Zones", completed_users)
+    with col4:
+        st.metric("Completion Rate", f"{completion_rate:.1f}%")
+    
+    # Add detailed completion breakdown
+    st.subheader("Zone Completion Breakdown")
+    completion_counts = user_zone_counts.value_counts().sort_index()
+    completion_df = pd.DataFrame({
+        'Zones Completed': completion_counts.index,
+        'Number of Users': completion_counts.values,
+        'Percentage': (completion_counts.values / unique_users * 100).round(1)
+    })
+    st.dataframe(completion_df, use_container_width=True)
+else:
+    st.info("No visits found in the selected date range")
   
