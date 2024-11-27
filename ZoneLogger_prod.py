@@ -383,7 +383,7 @@ if 'user_email' not in cookies and not st.session_state.show_email_override:
 
 st.markdown("""
 ### How it works:
-1. Enter your email address below to start your journey
+1. Enter your LBG email address below to start your journey
 2. Visit each zone and scan the QR code you find there
 3. Track your progress - visited zones will show in green
 4. Visit all zones to enter the prize draw! 🎉
