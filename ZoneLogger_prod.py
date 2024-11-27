@@ -427,7 +427,7 @@ if testing_mode:
 # Check for user email in cookies
 if 'user_email' not in cookies and not st.session_state.show_email_override:
     st.markdown("### ✉️ First, let's get you registered!")
-    user_email = st.text_input("Enter your email to start your journey:")
+    user_email = st.text_input("Enter your LBG email to start your journey:")
     if user_email:
         cookies['user_email'] = user_email
         cookies.save()
