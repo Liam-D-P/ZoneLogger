@@ -205,28 +205,50 @@ if not visits_df.empty:
             else:
                 st.markdown(f"Users who completed all zones took on average **{avg_minutes} minutes** to visit all zones.")
 
-    # Detailed Progress Section
-    st.header("Detailed Progress 📋")
-    
-    # User progress breakdown
+    # User Progress Breakdown Section
     st.subheader("User Progress Breakdown")
-    completion_counts = user_zone_counts.value_counts().sort_index()
-    completion_df = pd.DataFrame({
-        'Number of Zones Visited': completion_counts.index,
-        'Number of Users at this Level': completion_counts.values,
-        'Percentage of Total Users': (completion_counts.values / unique_users * 100).round(1)
+    
+    # Sort data in descending order by number of zones
+    sorted_counts = user_zone_counts.value_counts().sort_index(ascending=False)
+    
+    # Create DataFrame for visualization
+    progress_viz = pd.DataFrame({
+        'Zones': [f"{zones} zones {'✅' if zones == len(zone_mapping) else ''}" for zones in sorted_counts.index],
+        'Users': sorted_counts.values,
+        'Percentage': (sorted_counts.values / unique_users * 100).round(1)
     })
-    completion_df['Percentage of Total Users'] = completion_df['Percentage of Total Users'].apply(lambda x: f"{x}%")
-    st.dataframe(completion_df, use_container_width=True)
     
-    # Add simple text explanation
-    st.markdown("### User Progress Summary:")
-    for zones, count in completion_counts.items():
-        if count == 1:
-            st.markdown(f"- {count} User has visited {zones} zones")
-        else:
-            st.markdown(f"- {count} Users have visited {zones} zones")
+    # Create a more detailed chart using plotly
+    import plotly.express as px
     
+    fig = px.bar(progress_viz, 
+                 x='Users', 
+                 y='Zones',
+                 orientation='h',
+                 text=[f"{users} users ({pct}%)" for users, pct in zip(progress_viz['Users'], progress_viz['Percentage'])],
+                 color='Users',
+                 color_continuous_scale='Viridis')
+    
+    # Customize layout
+    fig.update_layout(
+        title="User Progress Distribution",
+        xaxis_title="Number of Users",
+        yaxis_title="Zones Completed",
+        showlegend=False,
+        height=400
+    )
+    
+    # Display the chart
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Add a concise summary text
+    st.markdown(f"""
+    **Quick Summary:**
+    - Most common: **{progress_viz['Users'].max()}** users completed {progress_viz.loc[progress_viz['Users'].idxmax(), 'Zones']}
+    - Full completion: **{completed_users}** users completed all {len(zone_mapping)} zones
+    - Total participants: **{unique_users}** users
+    """)
+
     # Add Completion Pathways Analysis
     st.markdown("### Completion Pathways Analysis")
     
