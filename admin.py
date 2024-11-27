@@ -137,32 +137,11 @@ visits_df = pd.DataFrame([
     } for visit in visits
 ])
 
-if not visits_df.empty:
-    # Convert zone IDs to zone names for better readability
-    visits_df['Zone Name'] = visits_df['Zone'].map(zone_mapping)
-    
-    # Display raw data
-    st.subheader("Raw Visit Data")
-    st.dataframe(visits_df, use_container_width=True)
-    
-    # Create visualizations
-    zone_counts = visits_df['Zone Name'].value_counts()
-    
-    # Make the bar chart more readable
-    st.subheader("Visits by Zone")
-    chart_data = pd.DataFrame({
-        'Zone': zone_counts.index,
-        'Visits': zone_counts.values
-    })
-    st.bar_chart(chart_data.set_index('Zone'))
-else:
-    st.info("No visits found in the selected date range")
-
-# Statistics Section
-st.header("Statistics 📈")
+# Statistics Section - Move this to the top as it's the most important overview
+st.header("Key Statistics 📈")
 
 if not visits_df.empty:
-    # Total unique users
+    # Total unique users and basic stats
     unique_users = len(visits_df["User ID"].unique())
     total_visits = len(visits_df)
     
@@ -171,7 +150,7 @@ if not visits_df.empty:
     completed_users = len(user_zone_counts[user_zone_counts == len(zone_mapping)])
     completion_rate = (completed_users / unique_users * 100) if unique_users > 0 else 0
     
-    # Display metrics in columns
+    # Display key metrics in columns
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("Unique Users", unique_users)
@@ -181,11 +160,11 @@ if not visits_df.empty:
         st.metric("Users Completed All Zones", completed_users)
     with col4:
         st.metric("Completion Rate", f"{completion_rate:.1f}%")
+
+    # Completion Analysis Section
+    st.header("Completion Analysis 📊")
     
     # Create completion rate visualization
-    st.subheader("User Completion Rate For All Zones")
-    
-    # Calculate the data
     completed_all = len(user_zone_counts[user_zone_counts == len(zone_mapping)])
     not_completed = len(user_zone_counts[user_zone_counts < len(zone_mapping)])
     
@@ -196,11 +175,36 @@ if not visits_df.empty:
     
     # Create bar chart
     st.bar_chart(completion_viz_data.set_index('Completion Status'))
-    
-    # Add text explanation
     st.markdown(f"The completion rate is approximately {completion_rate:.2f}%, meaning that about {int(completion_rate)}% of users scanned all 11 zones.")
     
-    # Add detailed completion breakdown
+    # Calculate and display average completion time
+    if completed_users > 0:
+        completed_user_ids = user_zone_counts[user_zone_counts == len(zone_mapping)].index
+        
+        completion_times = []
+        for user_id in completed_user_ids:
+            user_visits = visits_df[visits_df['User ID'] == user_id]
+            if not user_visits.empty:
+                user_visits['Timestamp'] = pd.to_datetime(user_visits['Timestamp'])
+                first_visit = user_visits['Timestamp'].min()
+                last_visit = user_visits['Timestamp'].max()
+                completion_time = (last_visit - first_visit).total_seconds() / 60
+                completion_times.append(completion_time)
+        
+        if completion_times:
+            avg_completion_time = sum(completion_times) / len(completion_times)
+            avg_hours = int(avg_completion_time // 60)
+            avg_minutes = int(avg_completion_time % 60)
+            
+            if avg_hours > 0:
+                st.markdown(f"Users who completed all zones took on average **{avg_hours} hours and {avg_minutes} minutes** to visit all zones.")
+            else:
+                st.markdown(f"Users who completed all zones took on average **{avg_minutes} minutes** to visit all zones.")
+
+    # Detailed Progress Section
+    st.header("Detailed Progress 📋")
+    
+    # User progress breakdown
     st.subheader("User Progress Breakdown")
     completion_counts = user_zone_counts.value_counts().sort_index()
     completion_df = pd.DataFrame({
@@ -208,40 +212,22 @@ if not visits_df.empty:
         'Number of Users at this Level': completion_counts.values,
         'Percentage of Total Users': (completion_counts.values / unique_users * 100).round(1)
     })
-    # Add % symbol and make percentages more readable
     completion_df['Percentage of Total Users'] = completion_df['Percentage of Total Users'].apply(lambda x: f"{x}%")
     st.dataframe(completion_df, use_container_width=True)
     
-    # Calculate average completion time for users who completed all zones
-    if completed_users > 0:
-        # Get users who completed all zones
-        completed_user_ids = user_zone_counts[user_zone_counts == len(zone_mapping)].index
-        
-        completion_times = []
-        for user_id in completed_user_ids:
-            user_visits = visits_df[visits_df['User ID'] == user_id]
-            if not user_visits.empty:
-                # Convert timestamps to datetime if they aren't already
-                user_visits['Timestamp'] = pd.to_datetime(user_visits['Timestamp'])
-                # Get first and last visit times
-                first_visit = user_visits['Timestamp'].min()
-                last_visit = user_visits['Timestamp'].max()
-                # Calculate time difference in minutes
-                completion_time = (last_visit - first_visit).total_seconds() / 60
-                completion_times.append(completion_time)
-        
-        if completion_times:
-            avg_completion_time = sum(completion_times) / len(completion_times)
-            # Convert to hours and minutes
-            avg_hours = int(avg_completion_time // 60)
-            avg_minutes = int(avg_completion_time % 60)
-            
-            # Display average completion time
-            st.subheader("Average Completion Time")
-            if avg_hours > 0:
-                st.markdown(f"Users who completed all zones took on average **{avg_hours} hours and {avg_minutes} minutes** to visit all zones.")
-            else:
-                st.markdown(f"Users who completed all zones took on average **{avg_minutes} minutes** to visit all zones.")
+    # Zone popularity
+    st.subheader("Zone Popularity")
+    zone_counts = visits_df['Zone Name'].value_counts()
+    chart_data = pd.DataFrame({
+        'Zone': zone_counts.index,
+        'Visits': zone_counts.values
+    })
+    st.bar_chart(chart_data.set_index('Zone'))
+    
+    # Raw Data Section - Move to bottom as it's most detailed
+    st.header("Raw Visit Data 📝")
+    st.dataframe(visits_df, use_container_width=True)
+
 else:
     st.info("No visits found in the selected date range")
   
