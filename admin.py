@@ -211,6 +211,37 @@ if not visits_df.empty:
     # Add % symbol and make percentages more readable
     completion_df['Percentage of Total Users'] = completion_df['Percentage of Total Users'].apply(lambda x: f"{x}%")
     st.dataframe(completion_df, use_container_width=True)
+    
+    # Calculate average completion time for users who completed all zones
+    if completed_users > 0:
+        # Get users who completed all zones
+        completed_user_ids = user_zone_counts[user_zone_counts == len(zone_mapping)].index
+        
+        completion_times = []
+        for user_id in completed_user_ids:
+            user_visits = visits_df[visits_df['User ID'] == user_id]
+            if not user_visits.empty:
+                # Convert timestamps to datetime if they aren't already
+                user_visits['Timestamp'] = pd.to_datetime(user_visits['Timestamp'])
+                # Get first and last visit times
+                first_visit = user_visits['Timestamp'].min()
+                last_visit = user_visits['Timestamp'].max()
+                # Calculate time difference in minutes
+                completion_time = (last_visit - first_visit).total_seconds() / 60
+                completion_times.append(completion_time)
+        
+        if completion_times:
+            avg_completion_time = sum(completion_times) / len(completion_times)
+            # Convert to hours and minutes
+            avg_hours = int(avg_completion_time // 60)
+            avg_minutes = int(avg_completion_time % 60)
+            
+            # Display average completion time
+            st.subheader("Average Completion Time")
+            if avg_hours > 0:
+                st.markdown(f"Users who completed all zones took on average **{avg_hours} hours and {avg_minutes} minutes** to visit all zones.")
+            else:
+                st.markdown(f"Users who completed all zones took on average **{avg_minutes} minutes** to visit all zones.")
 else:
     st.info("No visits found in the selected date range")
   
