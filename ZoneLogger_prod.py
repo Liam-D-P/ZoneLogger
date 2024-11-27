@@ -369,37 +369,39 @@ def get_name_from_email(email):
 # Welcome header and instructions
 st.title("Welcome to the Reboot 2024 Engineering & Cloud Zone Explorer!")
 
-# Add prominent camera permission warning right after the title
-st.warning("""
-### 🎥 Important: Camera Permission Required
+# Check for user email in cookies
+if 'user_email' not in cookies and not st.session_state.show_email_override:
+    # Show camera permission warning only before registration
+    st.warning("""
+    ### 🎥 Important: Camera Permission Required
 
-**You MUST allow camera access when prompted to after providing your email!**
+    **You MUST allow camera access when prompted to after providing your email!**
 
-- Look for the camera permission popup in your browser
-- Click 'Allow' when asked to access your camera
-- If you accidentally denied it, refresh the page to see the prompt again
-""")
-
-# Add Help section as expander
-with st.expander("Need Help? 🤔"):
-    st.markdown("""
-    ### Common Questions:
-    
-    **Q: My zone visit didn't register?**
-    A: Try refreshing the page. If that fails, try visiting the zone again.
-    
-    **Q: Can I visit zones in any order?**
-    A: Yes! Visit them in whatever order you prefer
-    
-    **Q: How do I know if I've won?**
-    A: Prize draw winners will be notified by email after the event
-    
-    **Q: How many zones do I need to visit?**
-    A: Visit all 11 zones to be eligible for the prize draw
-    
-    **Q: I need assistance!**
-    A: Find a volunteer from the Quality Engineering CoE stand - they will be happy to help!
+    - Look for the camera permission popup in your browser
+    - Click 'Allow' when asked to access your camera
+    - If you accidentally denied it, refresh the page to see the prompt again
     """)
+
+    # Add Help section as expander
+    with st.expander("Need Help? 🤔"):
+        st.markdown("""
+        ### Common Questions:
+        
+        **Q: My zone visit didn't register?**
+        A: Try refreshing the page. If that fails, try visiting the zone again.
+        
+        **Q: Can I visit zones in any order?**
+        A: Yes! Visit them in whatever order you prefer
+        
+        **Q: How do I know if I've won?**
+        A: Prize draw winners will be notified by email after the event
+        
+        **Q: How many zones do I need to visit?**
+        A: Visit all 11 zones to be eligible for the prize draw
+        
+        **Q: I need assistance!**
+        A: Find a volunteer from the Quality Engineering CoE stand - they will be happy to help!
+        """)
 
 st.markdown("""
 ### How it works:
