@@ -380,6 +380,17 @@ def get_name_from_email(email):
 # Welcome header and instructions
 st.title("Welcome to the Reboot 2024 Engineering & Cloud Zone Explorer!")
 
+# Add prominent camera permission warning right after the title
+st.warning("""
+### 🎥 Important: Camera Permission Required
+
+**You MUST allow camera access when prompted to scan QR codes!**
+
+- Look for the camera permission popup in your browser
+- Click 'Allow' when asked to access your camera
+- If you accidentally denied it, refresh the page to see the prompt again
+""")
+
 # Add Help section as expander
 with st.expander("Need Help? 🤔"):
     st.markdown("""
