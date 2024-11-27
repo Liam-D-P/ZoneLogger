@@ -183,13 +183,15 @@ if not visits_df.empty:
         st.metric("Completion Rate", f"{completion_rate:.1f}%")
     
     # Add detailed completion breakdown
-    st.subheader("Zone Completion Breakdown")
+    st.subheader("User Progress Breakdown")
     completion_counts = user_zone_counts.value_counts().sort_index()
     completion_df = pd.DataFrame({
-        'Zones Completed': completion_counts.index,
-        'Number of Users': completion_counts.values,
-        'Percentage': (completion_counts.values / unique_users * 100).round(1)
+        'Number of Zones Visited': completion_counts.index,
+        'Number of Users at this Level': completion_counts.values,
+        'Percentage of Total Users': (completion_counts.values / unique_users * 100).round(1)
     })
+    # Add % symbol and make percentages more readable
+    completion_df['Percentage of Total Users'] = completion_df['Percentage of Total Users'].apply(lambda x: f"{x}%")
     st.dataframe(completion_df, use_container_width=True)
 else:
     st.info("No visits found in the selected date range")
