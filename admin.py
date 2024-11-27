@@ -219,6 +219,14 @@ if not visits_df.empty:
     completion_df['Percentage of Total Users'] = completion_df['Percentage of Total Users'].apply(lambda x: f"{x}%")
     st.dataframe(completion_df, use_container_width=True)
     
+    # Add simple text explanation
+    st.markdown("### Breakdown Summary:")
+    for zones, count in completion_counts.items():
+        if count == 1:
+            st.markdown(f"- {count} User has visited {zones} zones")
+        else:
+            st.markdown(f"- {count} Users have visited {zones} zones")
+    
     # Zone popularity
     st.subheader("Zone Popularity")
     zone_counts = visits_df['Zone Name'].value_counts()
