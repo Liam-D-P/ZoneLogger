@@ -264,18 +264,17 @@ def get_zone_traffic():
     start_of_day = f"{today}T00:00:00"
     end_of_day = f"{today}T23:59:59"
     
-    # Single database query instead of multiple
+    # Query visits for the day and count in Python
     data = conn.table("visits")\
-        .select("zone, count(*)")\
+        .select("zone")\
         .gte("timestamp", start_of_day)\
         .lte("timestamp", end_of_day)\
-        .group_by("zone")\
         .execute()
     
-    # Process results in memory
+    # Count visits per zone in memory
     traffic = defaultdict(int)
     for row in data.data:
-        traffic[row['zone']] = row['count']
+        traffic[row['zone']] += 1
     
     return dict(traffic)
 
@@ -479,7 +478,7 @@ if user_email:
                 with cols[col_idx]:
                     if st.button(f"Check in to {zone_name}", key=f"manual_{zone_id}", use_container_width=True):
                         if log_visit(st.session_state.user_email, zone_id):
-                            st.success(f"Successfully checked in to {zone_name}! 🎉")
+                            st.success(f"Successfully checked in to {zone_name}! ���")
                         else:
                             st.warning("Please wait a minute before checking in to this zone again.")
                         time.sleep(1)
@@ -540,7 +539,7 @@ def handle_prize_draw():
     elif st.session_state.prize_draw_status == 'error':
         st.error("There was an issue entering the prize draw. Please try again.")
     
-    if st.button("Enter Prize Draw! ��", type="primary", use_container_width=True):
+    if st.button("Enter Prize Draw! ", type="primary", use_container_width=True):
         try:
             conn = get_db_connection()
             conn.table("prize_draw").insert({
