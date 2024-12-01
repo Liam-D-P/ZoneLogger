@@ -4,7 +4,6 @@
 import streamlit as st
 import os
 from st_supabase_connection import SupabaseConnection
-from memory_debug import log_memory_usage, memory_debug_info
 
 # Set page to wide mode and other configurations
 st.set_page_config(
@@ -118,65 +117,6 @@ def show_manual_checkin():
                     st.warning("Please wait a minute before checking in to this zone again.")
                 time.sleep(1)
                 st.rerun()
-
-# Add memory monitoring in development mode
-if os.getenv('DEVELOPMENT_MODE', 'false').lower() == 'true':
-    memory_debug_info()
-    
-# Add memory logging to key functions
-@log_memory_usage
-def show_zone_interface():
-    """Show the zone interface with tabs for different methods"""
-    # Check if we're in testing mode
-    testing_mode = os.getenv('TESTING_MODE', 'false').lower() == 'true'
-    
-    if testing_mode:
-        tab1, tab2, tab3, tab4 = st.tabs(["📱 Scan QR Code", "✍️ Manual Check-in", "🧪 Test QR Codes", "🔘 Quick Buttons"])
-    else:
-        # In production, only show QR scanner
-        tab1, = st.tabs(["📱 Scan QR Code"])
-    
-    with tab1:
-        st.markdown("### 📱 Scan Zone QR Code")
-        
-        st.info("Point your camera at a zone QR code to log your visit")
-        
-        # Use session state to manage scanning state
-        if 'scan_result' not in st.session_state:
-            st.session_state.scan_result = None
-        
-        qr_code = qrcode_scanner(key='scanner')
-        
-        if qr_code and not st.session_state.processing_scan:
-            st.session_state.processing_scan = True
-            
-            if qr_code in zone_mapping:
-                if log_visit(st.session_state.user_email, qr_code):
-                    st.session_state.scan_result = {
-                        'success': True,
-                        'zone': zone_mapping[qr_code]
-                    }
-                else:
-                    st.session_state.scan_result = {
-                        'success': False,
-                        'message': "Please wait before scanning again"
-                    }
-            else:
-                st.session_state.scan_result = {
-                    'success': False,
-                    'message': "Invalid QR code"
-                }
-            
-            # Single rerun instead of multiple
-            st.rerun()
-    
-    if testing_mode:  # Only show these tabs in testing mode
-        with tab2:
-            show_manual_checkin()
-        with tab3:
-            show_test_qr_codes()
-        with tab4:
-            show_quick_buttons()
 
 # Initialize SQLite database
 @st.cache_resource
@@ -600,7 +540,7 @@ def handle_prize_draw():
     elif st.session_state.prize_draw_status == 'error':
         st.error("There was an issue entering the prize draw. Please try again.")
     
-    if st.button("Enter Prize Draw! 🎁", type="primary", use_container_width=True):
+    if st.button("Enter Prize Draw! ��", type="primary", use_container_width=True):
         try:
             conn = get_db_connection()
             conn.table("prize_draw").insert({
