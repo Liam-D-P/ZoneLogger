@@ -118,6 +118,52 @@ def show_manual_checkin():
                 time.sleep(1)
                 st.rerun()
 
+def show_zone_interface():
+    """Show the zone interface with tabs for different methods"""
+    # Check if we're in testing mode
+    testing_mode = os.getenv('TESTING_MODE', 'false').lower() == 'true'
+    
+    if testing_mode:
+        tab1, tab2, tab3, tab4 = st.tabs(["📱 Scan QR Code", "✍️ Manual Check-in", "🧪 Test QR Codes", "🔘 Quick Buttons"])
+    else:
+        # In production, only show QR scanner
+        tab1, = st.tabs(["📱 Scan QR Code"])
+    
+    with tab1:
+        st.markdown("### 📱 Scan Zone QR Code")
+        
+        st.info("Point your camera at a zone QR code to log your visit")
+        
+        # Initialize the QR scanner
+        qr_code = qrcode_scanner(key='scanner')
+        
+        # QR code processing logic...
+        if qr_code and not st.session_state.processing_scan:
+            st.session_state.processing_scan = True
+            
+            if qr_code in zone_mapping:
+                if log_visit(st.session_state.user_email, qr_code):
+                    st.success(f"Successfully logged visit to {zone_mapping[qr_code]}! 🎉")
+                    st.session_state.processing_scan = False
+                    time.sleep(1)  # Give time to see the success message
+                    st.rerun()  # Refresh to update the UI
+            else:
+                st.error("Invalid QR code! Please try again.")
+                st.session_state.processing_scan = False
+                time.sleep(1)
+                st.rerun()
+            
+            # Reset processing flag if we didn't rerun
+            st.session_state.processing_scan = False
+    
+    if testing_mode:  # Only show these tabs in testing mode
+        with tab2:
+            show_manual_checkin()
+        with tab3:
+            show_test_qr_codes()
+        with tab4:
+            show_quick_buttons()
+
 # Initialize SQLite database
 @st.cache_resource
 def get_db_connection():
@@ -254,29 +300,30 @@ def logout_user():
         del st.session_state[key]
     # Don't rerun here - let the button handler do it
 
-# Update the zone traffic caching to be more efficient
-@st.cache_data(ttl=300)
+# Add this function near the other helper functions
+@st.cache_data(ttl=300)  # Cache data for 5 minutes
 def get_zone_traffic():
-    """Get live zone activity data for the current day with optimized caching"""
+    """Get live zone activity data for the current day"""
     conn = get_db_connection()
     
+    # Get today's date in ISO format
     today = datetime.datetime.now().date().isoformat()
     start_of_day = f"{today}T00:00:00"
     end_of_day = f"{today}T23:59:59"
     
-    # Query visits for the day and count in Python
+    # Query visits for the entire day
     data = conn.table("visits")\
         .select("zone")\
         .gte("timestamp", start_of_day)\
         .lte("timestamp", end_of_day)\
         .execute()
     
-    # Count visits per zone in memory
+    # Count visits per zone
     traffic = defaultdict(int)
     for row in data.data:
         traffic[row['zone']] += 1
     
-    return dict(traffic)
+    return traffic
 
 # Update the show_zone_traffic function to use the cached data
 def show_zone_traffic():
@@ -437,34 +484,27 @@ if user_email:
         
         st.info("Point your camera at a zone QR code to log your visit")
         
-        # Use session state to manage scanning state
-        if 'scan_result' not in st.session_state:
-            st.session_state.scan_result = None
-        
+        # Initialize the QR scanner
         qr_code = qrcode_scanner(key='scanner')
         
+        # QR code processing logic...
         if qr_code and not st.session_state.processing_scan:
             st.session_state.processing_scan = True
             
             if qr_code in zone_mapping:
                 if log_visit(st.session_state.user_email, qr_code):
-                    st.session_state.scan_result = {
-                        'success': True,
-                        'zone': zone_mapping[qr_code]
-                    }
-                else:
-                    st.session_state.scan_result = {
-                        'success': False,
-                        'message': "Please wait before scanning again"
-                    }
+                    st.success(f"Successfully logged visit to {zone_mapping[qr_code]}! 🎉")
+                    st.session_state.processing_scan = False
+                    time.sleep(1)  # Give time to see the success message
+                    st.rerun()  # Refresh to update the UI
             else:
-                st.session_state.scan_result = {
-                    'success': False,
-                    'message': "Invalid QR code"
-                }
+                st.error("Invalid QR code! Please try again.")
+                st.session_state.processing_scan = False
+                time.sleep(1)
+                st.rerun()
             
-            # Single rerun instead of multiple
-            st.rerun()
+            # Reset processing flag if we didn't rerun
+            st.session_state.processing_scan = False
     
     if testing_mode:  # Only show manual check-in in testing mode
         with tab2:
@@ -478,7 +518,7 @@ if user_email:
                 with cols[col_idx]:
                     if st.button(f"Check in to {zone_name}", key=f"manual_{zone_id}", use_container_width=True):
                         if log_visit(st.session_state.user_email, zone_id):
-                            st.success(f"Successfully checked in to {zone_name}! ���")
+                            st.success(f"Successfully checked in to {zone_name}! 🎉")
                         else:
                             st.warning("Please wait a minute before checking in to this zone again.")
                         time.sleep(1)
@@ -525,29 +565,3 @@ if user_email:
                     st.rerun()  # Refresh to show the entered state
     else:
         st.info("💡 Complete all zones to unlock the prize draw entry!")
-
-# Update the prize draw section to avoid unnecessary reruns
-def handle_prize_draw():
-    """Handle prize draw entry with fewer refreshes"""
-    if 'prize_draw_status' not in st.session_state:
-        st.session_state.prize_draw_status = None
-    
-    if st.session_state.prize_draw_status == 'success':
-        st.success("🎊 Fantastic! You're now entered in the prize draw!")
-        st.info("Good luck! Winners will be notified by email 🍀")
-        st.balloons()
-    elif st.session_state.prize_draw_status == 'error':
-        st.error("There was an issue entering the prize draw. Please try again.")
-    
-    if st.button("Enter Prize Draw! ", type="primary", use_container_width=True):
-        try:
-            conn = get_db_connection()
-            conn.table("prize_draw").insert({
-                "user_id": st.session_state.user_email,
-                "email": st.session_state.user_email
-            }).execute()
-            st.session_state.prize_draw_status = 'success'
-            st.rerun()  # Single rerun for the entire prize draw flow
-        except Exception as e:
-            st.session_state.prize_draw_status = 'error'
-            st.rerun()
