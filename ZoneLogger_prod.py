@@ -301,7 +301,7 @@ def logout_user():
     # Don't rerun here - let the button handler do it
 
 # Add this function near the other helper functions
-@st.cache_data(ttl=30)  # Cache data for 30 seconds
+@st.cache_data(ttl=300)  # Cache data for 5 minutes
 def get_zone_traffic():
     """Get live zone activity data for the current day"""
     conn = get_db_connection()
